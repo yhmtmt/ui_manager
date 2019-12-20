@@ -23,6 +23,7 @@ using namespace cv;
 #include <GL/glut.h>
 #include <GL/glu.h>
 
+#include "aws_map.hpp"
 #include "f_ui_manager.hpp"
 
 DEFINE_FILTER(f_ui_manager);

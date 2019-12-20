@@ -15,9 +15,9 @@
 #ifndef AWS_GLIB_HPP
 #define AWS_GLIB_HPP
 
-#include <glm.hpp>
-#include <gtc/matrix_transform.hpp>
-#include <gtc/type_ptr.hpp>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 // In my OpenGL use, the 2D renderer uses -1 to 1 normalized coordinate, 
 // The function convert OpenCV's pixel coordinate into normalized OpenGL coordinate.

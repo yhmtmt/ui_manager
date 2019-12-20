@@ -16,7 +16,7 @@
 #ifndef F_UI_MANAGER_HPP
 #define F_UI_MANAGER_HPP
 
-#include "f_glfw_window.h"
+#include "f_glfw_window.hpp"
 
 #include "ch_state.hpp"
 #include "ch_aws1_ctrl.hpp"
