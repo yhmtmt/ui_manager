@@ -13,17 +13,6 @@
 // You should have received a copy of the GNU General Public License
 // along with f_ui_manager.cpp.  If not, see <http://www.gnu.org/licenses/>. 
 
-#include <opencv2/opencv.hpp>
-using namespace cv;
-
-#include <GL/glew.h>
-
-#include <GLFW/glfw3.h>
-
-#include <GL/glut.h>
-#include <GL/glu.h>
-
-#include "aws_map.hpp"
 #include "f_ui_manager.hpp"
 
 DEFINE_FILTER(f_ui_manager);

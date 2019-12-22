@@ -17,6 +17,11 @@
 // along with f_glfw_window.hpp  If not, see <http://www.gnu.org/licenses/>. 
 
 #include "filter_base.hpp"
+#include <GL/glew.h>
+#include <GLFW/glfw3.h>
+#include <GL/glut.h>
+#include <GL/glu.h>
+
 #include "util/aws_jpad.hpp"
 #include "util/aws_glib.hpp"
 

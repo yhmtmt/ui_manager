@@ -16,6 +16,12 @@
 #ifndef F_UI_MANAGER_HPP
 #define F_UI_MANAGER_HPP
 
+#include "filter_base.hpp"
+#include "aws_map.hpp"
+
+#include <opencv2/opencv.hpp>
+using namespace cv;
+
 #include "f_glfw_window.hpp"
 
 #include "ch_state.hpp"
