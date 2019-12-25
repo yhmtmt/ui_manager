@@ -33,13 +33,13 @@ int AWSCamPar::version = 0;
 
 bool AWSCamPar::read(const char * fname)
 {
-  FileStorage fs(fname, FileStorage::READ);
+  cv::FileStorage fs(fname, cv::FileStorage::READ);
   if(!fs.isOpened()){
     cerr << "Failed to open " << fname << endl;
     return false;
   }
 
-  FileNode fn;
+  cv::FileNode fn;
 
   fn = fs["AWSCamPar"];
   if(fn.empty()){
@@ -80,7 +80,7 @@ bool AWSCamPar::read(const char * fname)
 
 bool AWSCamPar::write(const char * fname)
 {
-  FileStorage fs(fname, FileStorage::WRITE);
+  cv::FileStorage fs(fname, cv::FileStorage::WRITE);
   if(!fs.isOpened()){
     cerr << "Failed to open " << fname << endl;
     return false;
@@ -102,10 +102,10 @@ int AWSAttitude::version = 0;
 bool AWSAttitude::read(const char * name)
 {
   try{
-    FileStorage fs(name, FileStorage::READ);
+    cv::FileStorage fs(name, cv::FileStorage::READ);
     if(!fs.isOpened()){
       cerr << "Failed to open file " << name << endl;
-      FileNode fn;
+      cv::FileNode fn;
 
       fn = fs["AWSAttitude"];
       if(fn.empty()){
@@ -186,7 +186,7 @@ bool AWSAttitude::read(const char * name)
 bool AWSAttitude::write(const char * name)
 {
   try{
-    FileStorage fs(name, FileStorage::WRITE);
+    cv::FileStorage fs(name, cv::FileStorage::WRITE);
     fs << "AWSAttitude" << version;
     fs << "type" << (int) type;
     fs << "Rotation";
@@ -2407,7 +2407,7 @@ void layoutPyramid(const vector<cv::Mat> & IPyr, cv::Mat & out)
   out = cv::Mat::zeros(IPyr[0].rows, IPyr[0].cols * 2 + lvs, IPyr[0].type());
   int icol = 0;
   for(int ilv = 0; ilv < lvs; ilv++){
-    IPyr[ilv].copyTo(out(Range(0, IPyr[ilv].rows), Range(icol, icol + IPyr[ilv].cols)));
+    IPyr[ilv].copyTo(out(cv::Range(0, IPyr[ilv].rows), cv::Range(icol, icol + IPyr[ilv].cols)));
     icol += IPyr[ilv].cols;
   }
 }
@@ -2436,7 +2436,7 @@ void cnv64FC1to8UC1(const cv::Mat & in, cv::Mat & out)
   cv::MatIterator_<uchar> itru = out.begin<uchar>();
   itr = in.begin<double>();
   for(;itr != itr_end; itr++, itru++){
-    *itru = saturate_cast<uchar>(ivabs* (*itr - vmin));
+    *itru = cv::saturate_cast<uchar>(ivabs* (*itr - vmin));
   }
 }
 
@@ -2465,7 +2465,7 @@ void cnv32FC1to8UC1(const cv::Mat & in, cv::Mat & out)
   itr = in.begin<float>();
   for(;itr != itr_end; itr++, itru++){
     float v = (float)(ivabs* (*itr - vmin));
-    *itru = saturate_cast<uchar>(v);
+    *itru = cv::saturate_cast<uchar>(v);
   }
 }
 
@@ -2494,7 +2494,7 @@ void cnv16UC1to8UC1(const cv::Mat & in, cv::Mat & out)
   itr = in.begin<ushort>();
   for(;itr != itr_end; itr++, itru++){
     float v = (float)(ivabs* (*itr - vmin));
-    *itru = saturate_cast<uchar>(v);
+    *itru = cv::saturate_cast<uchar>(v);
   }
 }
 
@@ -2505,8 +2505,8 @@ void cnv16UC3to8UC3(const cv::Mat & in, cv::Mat & out)
     return;
   }
 
-  cv::MatConstIterator_<Vec3w> itr = in.begin<Vec3w>();
-  cv::MatConstIterator_<Vec3w> itr_end = in.end<Vec3w>();
+  cv::MatConstIterator_<cv::Vec3w> itr = in.begin<cv::Vec3w>();
+  cv::MatConstIterator_<cv::Vec3w> itr_end = in.end<cv::Vec3w>();
 
   ushort vmin[3] = {USHRT_MAX, USHRT_MAX, USHRT_MAX},
     vmax[3] = {0, 0, 0};
@@ -2528,16 +2528,16 @@ void cnv16UC3to8UC3(const cv::Mat & in, cv::Mat & out)
 
   out = cv::Mat::zeros(in.rows, in.cols, CV_8UC3);
 
-  cv::MatIterator_<Vec3b> itru = out.begin<Vec3b>();
-  itr = in.begin<Vec3w>();
+  cv::MatIterator_<cv::Vec3b> itru = out.begin<cv::Vec3b>();
+  itr = in.begin<cv::Vec3w>();
   for(;itr != itr_end; itr++, itru++){
     float v;
     v = (float)(ivabs[0]* ((*itr)[0] - vmin[0]));
-    (*itru)[0] = saturate_cast<uchar>(v);
+    (*itru)[0] = cv::saturate_cast<uchar>(v);
     v = (float)(ivabs[1]* ((*itr)[1] - vmin[1]));
-    (*itru)[1] = saturate_cast<uchar>(v);
+    (*itru)[1] = cv::saturate_cast<uchar>(v);
     v = (float)(ivabs[2]* ((*itr)[2] - vmin[2]));
-    (*itru)[2] = saturate_cast<uchar>(v);
+    (*itru)[2] = cv::saturate_cast<uchar>(v);
   }
 }
 
