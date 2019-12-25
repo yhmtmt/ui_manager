@@ -17,7 +17,7 @@
 
 DEFINE_FILTER(f_ui_manager);
 
-const char * f_aws1_ui::str_ctrl_mode[cm_undef] =
+const char * f_ui_manager::str_ctrl_mode[cm_undef] =
   {
     "crz", "ctl", "csr", "ap", "stb"
   };
@@ -540,7 +540,7 @@ void f_ui_manager::js_force_ctrl_stop(c_ctrl_mode_box * pcm_box)
 }
 
 
-void f_ui_manager::cnv_img_to_view(Mat & img, float av, Size & sz, bool flipx, bool flipy)
+void f_ui_manager::cnv_img_to_view(cv::Mat & img, float av, cv::Size & sz, bool flipx, bool flipy)
 {
   if(!img.empty()){
     if(sz.width != img.cols || sz.height != img.rows){
@@ -553,11 +553,11 @@ void f_ui_manager::cnv_img_to_view(Mat & img, float av, Size & sz, bool flipx, b
       sz.width &= 0xFFFFFFFE;
       sz.height &= 0xFFFFFFFE;
       
-      Mat tmp;
+      cv::Mat tmp;
       resize(img, tmp, sz);
       img = tmp;
     }else{
-      Mat tmp;
+      cv::Mat tmp;
       tmp = img.clone();
       img = tmp;
     }
@@ -595,10 +595,10 @@ void f_ui_manager::print_screen()
     
     if(m_bsvw){
       if(!m_vw.isOpened()){
-	char fname[1024];
+	char fname[2048];
 	double fps = (double) SEC / (double) get_period();
-	int fourcc = VideoWriter::fourcc('D', 'I', 'V', 'X');
-	snprintf(fname, 1024, "%s/%s_%lld.avi", m_path_storage, m_name, get_time());
+	int fourcc = cv::VideoWriter::fourcc('D', 'I', 'V', 'X');
+	snprintf(fname, 2048, "%s/%s_%lld.avi", m_path_storage, m_name, get_time());
 	
 	m_vw.open(fname, fourcc, fps, m_sz_win, true);
 	if(!m_vw.isOpened()){
@@ -615,8 +615,8 @@ void f_ui_manager::print_screen()
     }
     
     if(m_bss){
-      char fname[1024];
-      snprintf(fname, 1024, "%s/%s_%lld.png", m_path_storage, m_name, get_time());
+      char fname[2048];
+      snprintf(fname, 2048, "%s/%s_%lld.png", m_path_storage, m_name, get_time());
       imwrite(fname, m_simg);
     }
   }
@@ -637,7 +637,9 @@ void f_ui_manager::update_route(c_route_cfg_box * prc_box)
   for (m_ch_wp->begin(); !m_ch_wp->is_end(); m_ch_wp->next())
     {
       s_wp wp = m_ch_wp->cur();
-      eceftowrld(Rmap, pt_map_center_ecef.x, pt_map_center_ecef.y, pt_map_center_ecef.z,
+      eceftowrld(Rmap,
+		 pt_map_center_ecef.x, pt_map_center_ecef.y,
+		 pt_map_center_ecef.z,
 		 wp.x, wp.y, wp.z, wp.rx, wp.ry, wp.rz);
       owp.update_wps(iwp, wp);
       owp.enable(iwp);
@@ -899,18 +901,18 @@ void f_ui_manager::render_gl_objs(c_view_mode_box * pvm_box)
     int w = m_sz_win.width;
     int h = (int)(s * (double)m_cam.rows);
     int hcut = h - m_sz_win.height;
-    Mat roi;
+    cv::Mat roi;
     if(hcut > 0){
       int hcut_half =  (int)(0.5 * (double) hcut / s);
-      roi = m_cam(Rect(0,  hcut_half, w, m_cam.rows - hcut_half));
+      roi = m_cam(cv::Rect(0,  hcut_half, w, m_cam.rows - hcut_half));
       h = m_sz_win.height;
       hcut = 0;
     }else{
       roi = m_cam;
     }
     
-    Mat temp;
-    resize(m_cam, temp, Size(w, h));
+    cv::Mat temp;
+    resize(m_cam, temp, cv::Size(w, h));
     cnvCVBGR8toGLRGB8(temp);
     float ypos = -(float)(1.0 + (double)hcut / (double)m_sz_win.height);
     glRasterPos2f(-1.f, ypos);
@@ -974,7 +976,8 @@ bool f_ui_manager::proc()
   m_state->get_position_ecef(t, xown, yown, zown);
   
   double lat, lon;
-  Mat Rown = m_state->get_enu_rotation(t);
+  double Rown[9];
+  m_state->get_enu_rotation(t, Rown);
   m_state->get_position(t, lat, lon);
 
   float rpm = 0.0f;
@@ -1469,7 +1472,7 @@ void f_ui_manager::handle_ctrl_csr()
 
 
 void f_ui_manager::calc_mouse_enu_and_ecef_pos(
-					       e_ui_mode vm, Mat & Rown,
+					       e_ui_mode vm, double * Rown,
 					       const float lat, const float lon,
 					       const float xown, const float yown,
 					       const float zown, const float yaw)
@@ -1482,12 +1485,12 @@ void f_ui_manager::calc_mouse_enu_and_ecef_pos(
 	pt_map_center_ecef.z = zown;
 	pt_map_center_bih.x = (float)(lat * PI / 180.0f);
 	pt_map_center_bih.y = (float)(lon * PI / 180.0f);
-	Rmap = Rown.clone();
+	memcpy(Rmap, Rown, sizeof(Rmap));
       }
       pt_mouse_enu.x = pt_mouse.x * meter_per_pix;
       pt_mouse_enu.y = pt_mouse.y * meter_per_pix;
       pt_mouse_enu.z = 0.f;
-      float alt = 0;
+      double alt = 0;
       wrldtoecef(Rmap, pt_map_center_ecef.x, pt_map_center_ecef.y, pt_map_center_ecef.z,
 		 pt_mouse_enu.x, pt_mouse_enu.y, pt_mouse_enu.z,
 		 pt_mouse_ecef.x, pt_mouse_ecef.y, pt_mouse_ecef.z);
@@ -1501,7 +1504,7 @@ void f_ui_manager::calc_mouse_enu_and_ecef_pos(
       pt_map_center_ecef.z = zown;
       pt_map_center_bih.x = lat;
       pt_map_center_bih.y = lon;
-      Rmap = Rown.clone();
+      memcpy(Rmap, Rown, sizeof(Rmap));
       
       glm::vec2 phi(atan2(pt_mouse.x, fcam), atan2(-pt_mouse.y, fcam));
       float th, RE_sin_th;
@@ -1519,16 +1522,17 @@ void f_ui_manager::calc_mouse_enu_and_ecef_pos(
 		     (float)(RE_sin_th * cos(phi.x))
 		     );
       
-      float c, s, thcam = (float)((PI / 180.0) * (yaw + dir_cam_hdg));
-      c = (float)cos(thcam);
-      s = (float)sin(thcam);
+      double c, s, thcam = ((PI / 180.0) * (yaw + dir_cam_hdg));
+      c = cos(thcam);
+      s = sin(thcam);
       
-      pt_mouse_enu.x = (float)(c * pcam.x + s * pcam.y);
-      pt_mouse_enu.y = (float)(-s * pcam.x + c * pcam.y);
-      pt_mouse_enu.z = (float)(pcam.z - height_cam);
+      pt_mouse_enu.x = (c * pcam.x + s * pcam.y);
+      pt_mouse_enu.y = (-s * pcam.x + c * pcam.y);
+      pt_mouse_enu.z = (pcam.z - height_cam);
       
-      float alt = 0;
-      wrldtoecef(Rmap, pt_map_center_ecef.x, pt_map_center_ecef.y, pt_map_center_ecef.z,
+      double alt = 0;
+      wrldtoecef(Rmap,
+		 pt_map_center_ecef.x, pt_map_center_ecef.y, pt_map_center_ecef.z,
 		 pt_mouse_enu.x, pt_mouse_enu.y, pt_mouse_enu.z,
 		 pt_mouse_ecef.x, pt_mouse_ecef.y, pt_mouse_ecef.z);
       eceftobih(pt_mouse_ecef.x, pt_mouse_ecef.y, pt_mouse_ecef.z,
@@ -1948,10 +1952,9 @@ void f_ui_manager::update_ui_params(c_view_mode_box * pvm_box,
     glm::mat4 tm(1.0);
     tm = glm::translate(tm, -pt_map_center_ecef);
     glm::mat4 rm(1.0);
-    double * ptr = Rmap.ptr<double>();
-    rm[0][0] = (float)ptr[0]; rm[1][0] = (float)ptr[1]; rm[2][0] = (float)ptr[2];
-    rm[0][1] = (float)ptr[3]; rm[1][1] = (float)ptr[4]; rm[2][1] = (float)ptr[5];
-    rm[0][2] = (float)ptr[6]; rm[1][2] = (float)ptr[7]; rm[2][2] = (float)ptr[8];
+    rm[0][0] = (float)Rmap[0]; rm[1][0] = (float)Rmap[1]; rm[2][0] = (float)Rmap[2];
+    rm[0][1] = (float)Rmap[3]; rm[1][1] = (float)Rmap[4]; rm[2][1] = (float)Rmap[5];
+    rm[0][2] = (float)Rmap[6]; rm[1][2] = (float)Rmap[7]; rm[2][2] = (float)Rmap[8];
     mm = rm * tm;
   }
   
@@ -1974,7 +1977,8 @@ void f_ui_manager::update_ui_params(c_view_mode_box * pvm_box,
     own_ship.set_ui_mode(ui_mode_map);
     own_ship.enable();
     
-    float rx, ry, rz, rxs, rys, rzs, d, dir;
+    double rx, ry, rz;
+    float rxs, rys, rzs, d, dir;
     eceftowrld(Rmap, pt_map_center_ecef.x, pt_map_center_ecef.y, pt_map_center_ecef.z, xown, yown, zown, rx, ry, rz);
     if(m_ch_ap_inst->get_mode() == EAP_STAY){
       m_ch_ap_inst->get_stay_pos_rel(rxs, rys, d, dir);

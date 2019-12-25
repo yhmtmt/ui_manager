@@ -11,478 +11,453 @@
 // GNU General Public License for more details.
 
 // You should have received a copy of the GNU General Public License
-// along with aws1_glib.cpp.  If not, see <http://www.gnu.org/licenses/>. 
-
-#include "stdafx.h"
-#include <cstring>
-#include <cmath>
-
+// along with aws1_glib.cpp.  If not, see <http://www.gnu.org/licenses/>.
 #include <iostream>
-#include <fstream>
-#include <map>
+#include <vector>
 using namespace std;
-
-
-#ifdef _WIN32
-#include <Windows.h>
-#endif
-
-#include <opencv2/opencv.hpp>
-using namespace cv;
-
-#include "../util/aws_vobj.h"
-#include "../util/aws_vlib.h"
-
-#include <GL/glew.h>
-
-#include <GLFW/glfw3.h>
-
-#include <GL/glut.h>
-#include <GL/glu.h>
-
-#include "aws_glib.h"
+#include "aws_glib.hpp"
 
 
 //////////////////////////////////////////////////////////////////////////////////////////// helper functions
-void drawCvPoints(const Size & vp, vector<Point2f> & pts,
-	const float r, const float g, const float b, const float alpha,
-	const float l /*point size*/)
+void drawCvPoints(const cv::Size & vp, vector<cv::Point2f> & pts,
+		  const float r, const float g, const float b, const float alpha,
+		  const float l /*point size*/)
 {
-	Point2f pt;
-	double fac_x = 2.0 / (double)vp.width, fac_y = 2.0 / (double)vp.height;
+  cv::Point2f pt;
+  double fac_x = 2.0 / (double)vp.width, fac_y = 2.0 / (double)vp.height;
 
-	// drawing Points
-	glPointSize(l);
-	glBegin(GL_POINTS);
-	{
-		glColor4f(r, g, b, alpha);
-		for (int ipt = 0; ipt < pts.size(); ipt++){
-			cnvCvPoint2GlPoint(fac_x, fac_y, pts[ipt], pt);
-			glVertex2f(pt.x, pt.y);
-		}
-	}
-	glEnd();
+  // drawing Points
+  glPointSize(l);
+  glBegin(GL_POINTS);
+  {
+    glColor4f(r, g, b, alpha);
+    for (int ipt = 0; ipt < pts.size(); ipt++){
+      cnvCvPoint2GlPoint(fac_x, fac_y, pts[ipt], pt);
+      glVertex2f(pt.x, pt.y);
+    }
+  }
+  glEnd();
 }
 
 void drawCvPoints(const float fac_x, const float fac_y, const float xorg, const float yorg, const float w, const float h,
-	vector<Point2f> & pts,
-	const float r, const float g, const float b, const float alpha,
-	const float l /*point size*/)
+		  vector<cv::Point2f> & pts,
+		  const float r, const float g, const float b, const float alpha,
+		  const float l /*point size*/)
 {
 
-	Point2f pt;
-	// drawing Points
-	glPointSize(l);
-	glBegin(GL_POINTS);
-	{
-		glColor4f(r, g, b, alpha);
-		for (int ipt = 0; ipt < pts.size(); ipt++){
-			cnvCvPoint2GlPoint(fac_x, fac_y, xorg, yorg, w, h, pts[ipt], pt);
-			glVertex2f(pt.x, pt.y);
-		}
-	}
-	glEnd();
+  cv::Point2f pt;
+  // drawing Points
+  glPointSize(l);
+  glBegin(GL_POINTS);
+  {
+    glColor4f(r, g, b, alpha);
+    for (int ipt = 0; ipt < pts.size(); ipt++){
+      cnvCvPoint2GlPoint(fac_x, fac_y, xorg, yorg, w, h, pts[ipt], pt);
+      glVertex2f(pt.x, pt.y);
+    }
+  }
+  glEnd();
 
 }
 
 
-void drawCvChessboard(const Size & vp, vector<Point2f> & pts,
-	const float r, const float g, const float b, const float alpha,
-	const float l /* point size */, const float w /* line width */)
+void drawCvChessboard(const cv::Size & vp, vector<cv::Point2f> & pts,
+		      const float r, const float g, const float b, const float alpha,
+		      const float l /* point size */, const float w /* line width */)
 {
-	glColor4f(r, g, b, alpha);
-	glLineWidth(w);
+  glColor4f(r, g, b, alpha);
+  glLineWidth(w);
 
-	double fac_x = 2.0 / (double)vp.width, fac_y = 2.0 / (double)vp.height;
+  double fac_x = 2.0 / (double)vp.width, fac_y = 2.0 / (double)vp.height;
 
-	glBegin(GL_LINE_LOOP);
-	{
-		Point2f pt;
-		cnvCvPoint2GlPoint(fac_x, fac_y, pts[0], pt);
-		glVertex2f(pt.x, pt.y);
-		for (int ipt = 1; ipt < pts.size(); ipt++){
-			cnvCvPoint2GlPoint(fac_x, fac_y, pts[ipt], pt);
-			glVertex2f(pt.x, pt.y);
-		}
-	}
-	glEnd();
+  glBegin(GL_LINE_LOOP);
+  {
+    cv::Point2f pt;
+    cnvCvPoint2GlPoint(fac_x, fac_y, pts[0], pt);
+    glVertex2f(pt.x, pt.y);
+    for (int ipt = 1; ipt < pts.size(); ipt++){
+      cnvCvPoint2GlPoint(fac_x, fac_y, pts[ipt], pt);
+      glVertex2f(pt.x, pt.y);
+    }
+  }
+  glEnd();
 }
 
-void drawCvPointDensity(Mat hist, const int hist_max, const Size grid,
-	const float r, const float g, const float b, const float alpha,
-	const float w /* line width of the grid */)
+void drawCvPointDensity(cv::Mat hist, const int hist_max, const cv::Size grid,
+			const float r, const float g, const float b, const float alpha,
+			const float w /* line width of the grid */)
 {
-	float fac = (float)(1.0 / (float)hist_max);
-	float wgrid = (float)((float)2. / (float)grid.width);
-	float hgrid = (float)((float)2. / (float)grid.height);
+  float fac = (float)(1.0 / (float)hist_max);
+  float wgrid = (float)((float)2. / (float)grid.width);
+  float hgrid = (float)((float)2. / (float)grid.height);
 
-	glLineWidth(w);
-	glBegin(GL_QUADS);
-	{
-		for (int y = 0; y < grid.height; y++){
-			for (int x = 0; x < grid.width; x++){
-				glColor4f(r * fac, g * fac, b * fac, alpha);
-				float u, v;
-				u = (float)(x * wgrid - 1.);
-				v = -(float)(y * hgrid - 1.);
-				glVertex2f(u, v);
-				u = (float)((x + 1) * wgrid - 1.);
-				glVertex2f(u, v);
-				v = -(float)((y + 1) * hgrid - 1.);
-				glVertex2f(u, v);
-				u = (float)(x * wgrid - 1.);
-				glVertex2f(u, v);
-			}
-		}
-	}
-	glEnd();
+  glLineWidth(w);
+  glBegin(GL_QUADS);
+  {
+    for (int y = 0; y < grid.height; y++){
+      for (int x = 0; x < grid.width; x++){
+	glColor4f(r * fac, g * fac, b * fac, alpha);
+	float u, v;
+	u = (float)(x * wgrid - 1.);
+	v = -(float)(y * hgrid - 1.);
+	glVertex2f(u, v);
+	u = (float)((x + 1) * wgrid - 1.);
+	glVertex2f(u, v);
+	v = -(float)((y + 1) * hgrid - 1.);
+	glVertex2f(u, v);
+	u = (float)(x * wgrid - 1.);
+	glVertex2f(u, v);
+      }
+    }
+  }
+  glEnd();
 }
 
 void drawGlText(float x, float y, const char * str,
-	const float r, const float g, const float b, const float alpha,
-	void* font)
+		const float r, const float g, const float b, const float alpha,
+		void* font)
 {
-	glColor4f(r, g, b, alpha);
-	int l = (int)strlen(str);
-	glRasterPos2f(x, y);
-	for (int i = 0; i < l; i++){
-		glutBitmapCharacter(font, str[i]);
-	}
+  glColor4f(r, g, b, alpha);
+  int l = (int)strlen(str);
+  glRasterPos2f(x, y);
+  for (int i = 0; i < l; i++){
+    glutBitmapCharacter(font, str[i]);
+  }
 }
 
 void drawGlSquare2Df(float x1, float y1, float x2, float y2,
-	const float r, const float g, const float b, const float alpha, const float size)
+		     const float r, const float g, const float b, const float alpha, const float size)
 {
-	glColor4f(r, g, b, alpha);
-	glLineWidth(size);
-	glBegin(GL_LINE_LOOP);
-	glVertex2f(x1, y1);
-	glVertex2f(x2, y1);
-	glVertex2f(x2, y2);
-	glVertex2f(x1, y2);
-	glEnd();
+  glColor4f(r, g, b, alpha);
+  glLineWidth(size);
+  glBegin(GL_LINE_LOOP);
+  glVertex2f(x1, y1);
+  glVertex2f(x2, y1);
+  glVertex2f(x2, y2);
+  glVertex2f(x1, y2);
+  glEnd();
 }
 
 void drawGlSquare2Df(float x1, float y1, float x2, float y2,
-	const float r, const float g, const float b, const float alpha)
+		     const float r, const float g, const float b, const float alpha)
 {
-	glColor4f(r, g, b, alpha);
-	glBegin(GL_QUADS);
-	glVertex2f(x1, y1);
-	glVertex2f(x2, y1);
-	glVertex2f(x2, y2);
-	glVertex2f(x1, y2);
-	glEnd();
+  glColor4f(r, g, b, alpha);
+  glBegin(GL_QUADS);
+  glVertex2f(x1, y1);
+  glVertex2f(x2, y1);
+  glVertex2f(x2, y2);
+  glVertex2f(x1, y2);
+  glEnd();
 }
 
 void drawGlTriangle2Df(float x1, float y1, float x2, float y2,
-	float x3, float y3, const float r, const float g, const float b, const float alpha, const float size)
+		       float x3, float y3, const float r, const float g, const float b, const float alpha, const float size)
 {
-	glColor4f(r, g, b, alpha);
-	glLineWidth(size);
-	glBegin(GL_LINE_LOOP);
-	glVertex2f(x1, y1);
-	glVertex2f(x2, y2);
-	glVertex2f(x3, y3);
-	glEnd();
+  glColor4f(r, g, b, alpha);
+  glLineWidth(size);
+  glBegin(GL_LINE_LOOP);
+  glVertex2f(x1, y1);
+  glVertex2f(x2, y2);
+  glVertex2f(x3, y3);
+  glEnd();
 }
 
 void drawGlTriangle2Df(float x1, float y1, float x2, float y2,
-	float x3, float y3, const float r, const float g, const float b, const float alpha)
+		       float x3, float y3, const float r, const float g, const float b, const float alpha)
 {
-	glColor4f(r, g, b, alpha);
-	glBegin(GL_TRIANGLES);
-	glVertex2f(x1, y1);
-	glVertex2f(x2, y2);
-	glVertex2f(x3, y3);
-	glEnd();
+  glColor4f(r, g, b, alpha);
+  glBegin(GL_TRIANGLES);
+  glVertex2f(x1, y1);
+  glVertex2f(x2, y2);
+  glVertex2f(x3, y3);
+  glEnd();
 }
 
-void drawGlPolygon2Df(Point2f * pts, int num_pts,
-	const float r, const float g, const float b, const float alpha, const float size)
+void drawGlPolygon2Df(cv::Point2f * pts, int num_pts,
+		      const float r, const float g, const float b, const float alpha, const float size)
 {
-	glColor4f(r, g, b, alpha);
-	glLineWidth(size);
-	glBegin(GL_LINE_LOOP);
-	for (int i = 0; i< num_pts; i++)
-		glVertex2f(pts[i].x, pts[i].y);
-	glEnd();
+  glColor4f(r, g, b, alpha);
+  glLineWidth(size);
+  glBegin(GL_LINE_LOOP);
+  for (int i = 0; i< num_pts; i++)
+    glVertex2f(pts[i].x, pts[i].y);
+  glEnd();
 }
 
-void drawGlPolygon2Df(Point2f * pts, int num_pts,
-	const float r, const float g, const float b, const float alpha)
+void drawGlPolygon2Df(cv::Point2f * pts, int num_pts,
+		      const float r, const float g, const float b, const float alpha)
 {
-	glColor4f(r, g, b, alpha);
-	glBegin(GL_POLYGON);
-	for (int i = 0; i < num_pts; i++)
-		glVertex2f(pts[i].x, pts[i].y);
-	glEnd();
+  glColor4f(r, g, b, alpha);
+  glBegin(GL_POLYGON);
+  for (int i = 0; i < num_pts; i++)
+    glVertex2f(pts[i].x, pts[i].y);
+  glEnd();
 }
 
-void drawGlPolygon2Df(Point2f * pts, int num_pts,
-	const Point2f & offset,
-	const float r, const float g, const float b, const float alpha, const float size)
+void drawGlPolygon2Df(cv::Point2f * pts, int num_pts,
+		      const cv::Point2f & offset,
+		      const float r, const float g, const float b, const float alpha, const float size)
 {
-	glColor4f(r, g, b, alpha);
-	glLineWidth(size);
-	glBegin(GL_LINE_LOOP);
-	for (int i = 0; i< num_pts; i++)
-		glVertex2f((float)(pts[i].x + offset.x), (float)(pts[i].y + offset.y));
-	glEnd();
+  glColor4f(r, g, b, alpha);
+  glLineWidth(size);
+  glBegin(GL_LINE_LOOP);
+  for (int i = 0; i< num_pts; i++)
+    glVertex2f((float)(pts[i].x + offset.x), (float)(pts[i].y + offset.y));
+  glEnd();
 }
 
-void drawGlPolygon2Df(Point2f * pts, int num_pts,
-	const Point2f & offset,
-	const float r, const float g, const float b, const float alpha)
+void drawGlPolygon2Df(cv::Point2f * pts, int num_pts,
+		      const cv::Point2f & offset,
+		      const float r, const float g, const float b, const float alpha)
 {
-	glColor4f(r, g, b, alpha);
-	glBegin(GL_POLYGON);
-	for (int i = 0; i < num_pts; i++)
-		glVertex2f((float)(pts[i].x + offset.x), (float)(pts[i].y + offset.y));
-	glEnd();
+  glColor4f(r, g, b, alpha);
+  glBegin(GL_POLYGON);
+  for (int i = 0; i < num_pts; i++)
+    glVertex2f((float)(pts[i].x + offset.x), (float)(pts[i].y + offset.y));
+  glEnd();
 }
 
 
 void drawGlLine2Df(float x1, float y1, float x2, float y2,
-	const float r, const float g, const float b, const float alpha, const float size)
+		   const float r, const float g, const float b, const float alpha, const float size)
 {
-	glColor4f(r, g, b, alpha);
-	glLineWidth(size);
-	glBegin(GL_LINES);
-	glVertex2f(x1, y1);
-	glVertex2f(x2, y2);
-	glEnd();
+  glColor4f(r, g, b, alpha);
+  glLineWidth(size);
+  glBegin(GL_LINES);
+  glVertex2f(x1, y1);
+  glVertex2f(x2, y2);
+  glEnd();
 }
 
 
-void cnvCvRTToGlRT(const Mat & r, const Mat & t, GLdouble * m)
+void cnvCvRTToGlRT(const cv::Mat & r, const cv::Mat & t, GLdouble * m)
 {
-	// m[0] m[4] m[8]  m[12]
-	// m[1] m[5] m[9]  m[13]
-	// m[2] m[6] m[10] m[14]
-	// m[3] m[7] m[11] m[15]
-	m[3] = m[7] = m[11] = 0.;
-	m[15] = 1.0;
-	{// load rotation matrix
-		Mat R;
-		Rodrigues(r, R);
+  // m[0] m[4] m[8]  m[12]
+  // m[1] m[5] m[9]  m[13]
+  // m[2] m[6] m[10] m[14]
+  // m[3] m[7] m[11] m[15]
+  m[3] = m[7] = m[11] = 0.;
+  m[15] = 1.0;
+  {// load rotation matrix
+    cv::Mat R;
+    Rodrigues(r, R);
 
-		if (R.type() == CV_64FC1){ // doulbe precision
-			double * p = R.ptr<double>();
-			m[0] = p[0];
-			m[4] = p[1];
-			m[8] = p[2];
-			m[1] = p[3];
-			m[5] = p[4];
-			m[9] = p[5];
-			m[2] = p[6];
-			m[6] = p[7];
-			m[10] = p[8];
-		}
-		else{ // single precision
-			float * p = R.ptr<float>();
-			m[0] = p[0];
-			m[4] = p[1];
-			m[8] = p[2];
-			m[1] = p[3];
-			m[5] = p[4];
-			m[9] = p[5];
-			m[2] = p[6];
-			m[6] = p[7];
-			m[10] = p[8];
-		}
-	}
+    if (R.type() == CV_64FC1){ // doulbe precision
+      double * p = R.ptr<double>();
+      m[0] = p[0];
+      m[4] = p[1];
+      m[8] = p[2];
+      m[1] = p[3];
+      m[5] = p[4];
+      m[9] = p[5];
+      m[2] = p[6];
+      m[6] = p[7];
+      m[10] = p[8];
+    }
+    else{ // single precision
+      float * p = R.ptr<float>();
+      m[0] = p[0];
+      m[4] = p[1];
+      m[8] = p[2];
+      m[1] = p[3];
+      m[5] = p[4];
+      m[9] = p[5];
+      m[2] = p[6];
+      m[6] = p[7];
+      m[10] = p[8];
+    }
+  }
 
-	// load translation
-	if(t.type() == CV_64FC1){
-		const double * p = t.ptr<double>();
-		m[12] = p[0];
-		m[13] = p[1];
-		m[14] = p[2];
-	}
-	else{
-		const float * p = t.ptr<float>();
-		m[12] = p[0];
-		m[13] = p[1];
-		m[14] = p[2];
-	}
+  // load translation
+  if(t.type() == CV_64FC1){
+    const double * p = t.ptr<double>();
+    m[12] = p[0];
+    m[13] = p[1];
+    m[14] = p[2];
+  }
+  else{
+    const float * p = t.ptr<float>();
+    m[12] = p[0];
+    m[13] = p[1];
+    m[14] = p[2];
+  }
 }
 
-void cnvCvRTToGlRT(const Mat & r, const Mat & t, GLfloat * m)
+void cnvCvRTToGlRT(const cv::Mat & r, const cv::Mat & t, GLfloat * m)
 {
-	// m[0] m[4] m[8]  m[12]
-	// m[1] m[5] m[9]  m[13]
-	// m[2] m[6] m[10] m[14]
-	// m[3] m[7] m[11] m[15]
-	m[3] = m[7] = m[11] = 0.;
-	m[15] = 1.0;
-	{// load rotation matrix
-		Mat R;
-		Rodrigues(r, R);
+  // m[0] m[4] m[8]  m[12]
+  // m[1] m[5] m[9]  m[13]
+  // m[2] m[6] m[10] m[14]
+  // m[3] m[7] m[11] m[15]
+  m[3] = m[7] = m[11] = 0.;
+  m[15] = 1.0;
+  {// load rotation matrix
+    cv::Mat R;
+    Rodrigues(r, R);
 
-		if (R.type() == CV_64FC1){ // doulbe precision
-			double * p = R.ptr<double>();
-			m[0] = (GLfloat)p[0];
-			m[4] = (GLfloat)p[1];
-			m[8] = (GLfloat)p[2];
-			m[1] = (GLfloat)p[3];
-			m[5] = (GLfloat)p[4];
-			m[9] = (GLfloat)p[5];
-			m[2] = (GLfloat)p[6];
-			m[6] = (GLfloat)p[7];
-			m[10] = (GLfloat)p[8];
-		}
-		else{ // single precision
-			float * p = R.ptr<float>();
-			m[0] = p[0];
-			m[4] = p[1];
-			m[8] = p[2];
-			m[1] = p[3];
-			m[5] = p[4];
-			m[9] = p[5];
-			m[2] = p[6];
-			m[6] = p[7];
-			m[10] = p[8];
-		}
-	}
+    if (R.type() == CV_64FC1){ // doulbe precision
+      double * p = R.ptr<double>();
+      m[0] = (GLfloat)p[0];
+      m[4] = (GLfloat)p[1];
+      m[8] = (GLfloat)p[2];
+      m[1] = (GLfloat)p[3];
+      m[5] = (GLfloat)p[4];
+      m[9] = (GLfloat)p[5];
+      m[2] = (GLfloat)p[6];
+      m[6] = (GLfloat)p[7];
+      m[10] = (GLfloat)p[8];
+    }
+    else{ // single precision
+      float * p = R.ptr<float>();
+      m[0] = p[0];
+      m[4] = p[1];
+      m[8] = p[2];
+      m[1] = p[3];
+      m[5] = p[4];
+      m[9] = p[5];
+      m[2] = p[6];
+      m[6] = p[7];
+      m[10] = p[8];
+    }
+  }
 
-	// load translation
-	if (t.type() == CV_64FC1){
-		const double * p = t.ptr<double>();
-		m[12] = (GLfloat)p[0];
-		m[13] = (GLfloat)p[1];
-		m[14] = (GLfloat)p[2];
-	}
-	else{
-		const float * p = t.ptr<float>();
-		m[12] = p[0];
-		m[13] = p[1];
-		m[14] = p[2];
-	}
+  // load translation
+  if (t.type() == CV_64FC1){
+    const double * p = t.ptr<double>();
+    m[12] = (GLfloat)p[0];
+    m[13] = (GLfloat)p[1];
+    m[14] = (GLfloat)p[2];
+  }
+  else{
+    const float * p = t.ptr<float>();
+    m[12] = p[0];
+    m[13] = p[1];
+    m[14] = p[2];
+  }
 
 }
 
 
 void printGlMatrix(const float * m)
 {
-	cout << m[0] << " " << m[4] << " " << m[8] << " " << m[12] << endl;
-	cout << m[1] << " " << m[5] << " " << m[9] << " " << m[13] << endl;
-	cout << m[2] << " " << m[6] << " " << m[10] << " " << m[14] << endl;
-	cout << m[3] << " " << m[7] << " " << m[11] << " " << m[15] << endl;
+  cout << m[0] << " " << m[4] << " " << m[8] << " " << m[12] << endl;
+  cout << m[1] << " " << m[5] << " " << m[9] << " " << m[13] << endl;
+  cout << m[2] << " " << m[6] << " " << m[10] << " " << m[14] << endl;
+  cout << m[3] << " " << m[7] << " " << m[11] << " " << m[15] << endl;
 }
 
 void printGlMatrix(const double * m)
 {
-	cout << m[0] << " " << m[4] << " " << m[8] << " " << m[12] << endl;
-	cout << m[1] << " " << m[5] << " " << m[9] << " " << m[13] << endl;
-	cout << m[2] << " " << m[6] << " " << m[10] << " " << m[14] << endl;
-	cout << m[3] << " " << m[7] << " " << m[11] << " " << m[15] << endl;
+  cout << m[0] << " " << m[4] << " " << m[8] << " " << m[12] << endl;
+  cout << m[1] << " " << m[5] << " " << m[9] << " " << m[13] << endl;
+  cout << m[2] << " " << m[6] << " " << m[10] << " " << m[14] << endl;
+  cout << m[3] << " " << m[7] << " " << m[11] << " " << m[15] << endl;
 }
 /////////////////////////////////////////////////////////////////////////////// glsl source loader
 
 void printShaderInfoLog(GLuint obj)
 {
-	int infologLength = 0;
-	int charsWritten = 0;
-	char *infoLog;
+  int infologLength = 0;
+  int charsWritten = 0;
+  char *infoLog;
 
-	glGetShaderiv(obj, GL_INFO_LOG_LENGTH, &infologLength);
+  glGetShaderiv(obj, GL_INFO_LOG_LENGTH, &infologLength);
 
-	if (infologLength > 0)
-	{
-		infoLog = (char *)malloc(infologLength);
-		glGetShaderInfoLog(obj, infologLength, &charsWritten, infoLog);
-		printf("%s\n", infoLog);
-		free(infoLog);
-	}
+  if (infologLength > 0)
+    {
+      infoLog = (char *)malloc(infologLength);
+      glGetShaderInfoLog(obj, infologLength, &charsWritten, infoLog);
+      printf("%s\n", infoLog);
+      free(infoLog);
+    }
 }
 
 void printProgramInfoLog(GLuint obj)
 {
-	int infologLength = 0;
-	int charsWritten = 0;
-	char *infoLog;
+  int infologLength = 0;
+  int charsWritten = 0;
+  char *infoLog;
 
-	glGetProgramiv(obj, GL_INFO_LOG_LENGTH, &infologLength);
+  glGetProgramiv(obj, GL_INFO_LOG_LENGTH, &infologLength);
 
-	if (infologLength > 0)
-	{
-		infoLog = (char *)malloc(infologLength);
-		glGetProgramInfoLog(obj, infologLength, &charsWritten, infoLog);
-		printf("%s\n", infoLog);
-		free(infoLog);
-	}
+  if (infologLength > 0)
+    {
+      infoLog = (char *)malloc(infologLength);
+      glGetProgramInfoLog(obj, infologLength, &charsWritten, infoLog);
+      printf("%s\n", infoLog);
+      free(infoLog);
+    }
 }
 
 
 char * load_glsl_text(const char * fname)
 {
-	ifstream fin(fname);
-	if (!fin.is_open()){
-	  cerr << "Failed to open GLSL program " << fname << endl;
-		return NULL;
-	}
+  ifstream fin(fname);
+  if (!fin.is_open()){
+    cerr << "Failed to open GLSL program " << fname << endl;
+    return NULL;
+  }
 
-	fin.seekg(0, fin.end);
-	unsigned int flen = fin.tellg();
-	fin.seekg(0, fin.beg);
+  fin.seekg(0, fin.end);
+  unsigned int flen = fin.tellg();
+  fin.seekg(0, fin.beg);
 
-	char * txt = new char[flen + 1];
-	if (!txt)
-		return NULL;
+  char * txt = new char[flen + 1];
+  if (!txt)
+    return NULL;
 
-	memset((void*)txt, 0, (size_t)(flen + 1));
-	fin.read(txt, flen);
-	return txt;
+  memset((void*)txt, 0, (size_t)(flen + 1));
+  fin.read(txt, flen);
+  return txt;
 }
 
 bool load_glsl_program(const char * ffs, const char * fvs,  GLuint & p)
 {
-	char *vs = NULL, *fs = NULL;
-	GLuint f, v;
-	v = glCreateShader(GL_VERTEX_SHADER);
-	if (!v)
-		return false;
-	f = glCreateShader(GL_FRAGMENT_SHADER);
-	if (!f)
-		return false;
+  char *vs = NULL, *fs = NULL;
+  GLuint f, v;
+  v = glCreateShader(GL_VERTEX_SHADER);
+  if (!v)
+    return false;
+  f = glCreateShader(GL_FRAGMENT_SHADER);
+  if (!f)
+    return false;
 
 
-	vs = load_glsl_text(fvs);
-	if(!vs){
-	  return false;
-	}
-	fs = load_glsl_text(ffs);
-	if(!fs){
-	  delete[] vs;
-	  return false;
-	}
+  vs = load_glsl_text(fvs);
+  if(!vs){
+    return false;
+  }
+  fs = load_glsl_text(ffs);
+  if(!fs){
+    delete[] vs;
+    return false;
+  }
 	
-	const char * vv = vs;
-	const char * ff = fs;
+  const char * vv = vs;
+  const char * ff = fs;
 
-	glShaderSource(v, 1, &vv, NULL);
-	glShaderSource(f, 1, &ff, NULL);
+  glShaderSource(v, 1, &vv, NULL);
+  glShaderSource(f, 1, &ff, NULL);
 
-	delete[] vs;
-	delete[] fs;
+  delete[] vs;
+  delete[] fs;
 
-	glCompileShader(v);
-	glCompileShader(f);
+  glCompileShader(v);
+  glCompileShader(f);
 
-	printShaderInfoLog(v);
-	printShaderInfoLog(f);
+  printShaderInfoLog(v);
+  printShaderInfoLog(f);
 
-	p = glCreateProgram();
-	glAttachShader(p, v);
-	glAttachShader(p, f);
-	glLinkProgram(p);
-	printProgramInfoLog(p);
+  p = glCreateProgram();
+  glAttachShader(p, v);
+  glAttachShader(p, f);
+  glLinkProgram(p);
+  printProgramInfoLog(p);
 
-	glDeleteShader(v);
-	glDeleteShader(f);
+  glDeleteShader(v);
+  glDeleteShader(f);
 
-	return true;
+  return true;
 }
 
 
@@ -524,7 +499,7 @@ bool c_gl_radar::init(int _spokes, int _spoke_len_max,
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-  texture_buffer = Mat::zeros(2048,1024,CV_8UC1);
+  texture_buffer = cv::Mat::zeros(2048,1024,CV_8UC1);
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, 1024, 2048, 0,
 	       GL_RED, GL_UNSIGNED_BYTE, texture_buffer.data);
   float
@@ -532,11 +507,11 @@ bool c_gl_radar::init(int _spokes, int _spoke_len_max,
     vend = (float)((double)spokes / (double)2048);
 
   /*
-  texture_buffer = Mat::zeros(2*spoke_len_max,2*spoke_len_max,CV_8UC1);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, 2048, 2048, 0,
-	       GL_RED, GL_UNSIGNED_BYTE, texture_buffer.data);
-  float uend = (float)((double)2048/(double)(2*spoke_len_max));
-  float vend = uend;
+    texture_buffer = Mat::zeros(2*spoke_len_max,2*spoke_len_max,CV_8UC1);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, 2048, 2048, 0,
+    GL_RED, GL_UNSIGNED_BYTE, texture_buffer.data);
+    float uend = (float)((double)2048/(double)(2*spoke_len_max));
+    float vend = uend;
   */
   
   // Create Vertex Buffer
@@ -546,21 +521,21 @@ bool c_gl_radar::init(int _spokes, int _spoke_len_max,
 
 
   /*
-  num_vertices = 4;
-  num_indices = 6;
-  vertices = new s_vertex[num_vertices];
-  indices = new unsigned short[num_indices];
-  vertices[0].x = vertices[1].x = -1.0f;
-  vertices[2].x = vertices[3].x = 1.0f;  
-  vertices[0].y = vertices[2].y = -1.0f;
-  vertices[1].y = vertices[3].y = 1.0f;
-  vertices[0].u = vertices[1].u = 0.0f;
-  vertices[2].u = vertices[3].u = 1.0;  
-  vertices[0].v = vertices[2].v = 0.0f;
-  vertices[1].v = vertices[3].v = 1.0;
+    num_vertices = 4;
+    num_indices = 6;
+    vertices = new s_vertex[num_vertices];
+    indices = new unsigned short[num_indices];
+    vertices[0].x = vertices[1].x = -1.0f;
+    vertices[2].x = vertices[3].x = 1.0f;  
+    vertices[0].y = vertices[2].y = -1.0f;
+    vertices[1].y = vertices[3].y = 1.0f;
+    vertices[0].u = vertices[1].u = 0.0f;
+    vertices[2].u = vertices[3].u = 1.0;  
+    vertices[0].v = vertices[2].v = 0.0f;
+    vertices[1].v = vertices[3].v = 1.0;
  
-  indices[0] = 0;indices[1]=3;indices[2]=1;
-  indices[3] = 0;indices[4]=2;indices[5]=3;  
+    indices[0] = 0;indices[1]=3;indices[2]=1;
+    indices[3] = 0;indices[4]=2;indices[5]=3;  
   */
 
   num_vertices = spokes * 4;
@@ -572,7 +547,7 @@ bool c_gl_radar::init(int _spokes, int _spoke_len_max,
   // vertices: 0: center, 1: arc[0], 2: arc[1], 3: arc[2]
   // indices: (0, 2, 1) (0, 3, 2) two triangles counter clockwise
 
-  double spoke_angle = 2.0 * CV_PI / (double) spokes;
+  double spoke_angle = 2.0 * PI / (double) spokes;
   double a0, a1, a2;
   for (int ispoke = 0; ispoke < spokes; ispoke++){
     int center = 4 * ispoke;
@@ -645,7 +620,7 @@ void c_gl_radar::update_spoke(const long long _t,
 {
 
   if(range_meters != _range_meters){
-    texture_buffer = Mat::zeros(2048,1024,CV_8UC1);    
+    texture_buffer = cv::Mat::zeros(2048,1024,CV_8UC1);    
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, spoke_len_max, spokes, GL_RED, GL_UNSIGNED_BYTE, texture_buffer.data);
     range_meters = _range_meters;
   }
@@ -656,7 +631,7 @@ void c_gl_radar::update_spoke(const long long _t,
   bearing_prev = _bearing;
 }
 
-void c_gl_radar::update_image(Mat & img)
+void c_gl_radar::update_image(cv::Mat & img)
 {
   glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, spoke_len_max*2, spoke_len_max*2, GL_RED, GL_UNSIGNED_BYTE, texture_buffer.data);
 }
@@ -666,19 +641,19 @@ void c_gl_radar::update_done()
   glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1024, 2048, GL_RED,
 		  GL_UNSIGNED_BYTE, texture_buffer.data);
   /*
-  char fname[1024];
-  snprintf(fname, 1024, "rdr_%lld.png", tprev_update);
-  imwrite(fname, texture_buffer);
+    char fname[1024];
+    snprintf(fname, 1024, "rdr_%lld.png", tprev_update);
+    imwrite(fname, texture_buffer);
   */
 }
 
 void c_gl_radar::update_spokes(const long long _t,
-			      const int _range_meters,
+			       const int _range_meters,
 			       const int _bearing_from, const int _bearing_to,
 			       const unsigned char * _lines)
 {
   if(range_meters != _range_meters){
-    texture_buffer = Mat::zeros(2048,1024,CV_8UC1);    
+    texture_buffer = cv::Mat::zeros(2048,1024,CV_8UC1);    
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, spoke_len_max, spokes, GL_RED, GL_UNSIGNED_BYTE, texture_buffer.data);
     range_meters = _range_meters;
     return;
@@ -925,16 +900,16 @@ bool c_gl_text_obj::init(const char * ftex, const char * finf, GLuint _modeloc,
     }
   }
 
-  Mat tex = imread(ftex);
+  cv::Mat tex = cv::imread(ftex);
   if (tex.empty()){
     cerr << "Failed to open file " << ftex << endl;
     return false;
   }
   
-  Mat tex_r = Mat::zeros(tex.rows, tex.cols, CV_8UC1);
-  MatIterator_<Vec3b> itr = tex.begin<Vec3b>();
-  MatIterator_<uchar> itr_dst = tex_r.begin<uchar>();
-  for (; itr != tex.end<Vec3b>(); itr++, itr_dst++){
+  cv::Mat tex_r = cv::Mat::zeros(tex.rows, tex.cols, CV_8UC1);
+  cv::MatIterator_<cv::Vec3b> itr = tex.begin<cv::Vec3b>();
+  cv::MatIterator_<uchar> itr_dst = tex_r.begin<uchar>();
+  for (; itr != tex.end<cv::Vec3b>(); itr++, itr_dst++){
     *itr_dst = (*itr)[0];
   }
   
@@ -1007,8 +982,8 @@ void c_gl_text_obj::set(int handle, const char * str)
 }
 
 void c_gl_text_obj::config(int handle, const glm::vec4 & clr, const glm::vec4 & bkgclr,
-	const glm::vec2 & sz_fnt, const glm::vec2 & mgn, const e_anchor anch,
-	const glm::vec2 & t, const float  rot, const int depth)
+			   const glm::vec2 & sz_fnt, const glm::vec2 & mgn, const e_anchor anch,
+			   const glm::vec2 & t, const float  rot, const int depth)
 {
   if (handle < sbis.size()){
     sbis[handle].sz_fnt = sz_fnt;
@@ -1313,13 +1288,13 @@ c_gl_line_obj::c_gl_line_obj() :vao(0), bupdated(false), vertices(NULL)
 
 c_gl_line_obj::~c_gl_line_obj()
 {
-	destroy();
+  destroy();
 }
 
 void c_gl_line_obj::clear()
 {
-	lbis.clear();
-	num_total_vertices = 0;
+  lbis.clear();
+  num_total_vertices = 0;
 }
 
 void c_gl_line_obj::destroy()
@@ -1408,12 +1383,12 @@ void c_gl_line_obj::config_points(const int handle, const float * pts)
 void c_gl_line_obj::remove(const int handle)
 {
   if (handle < lbis.size()){
-	  memcpy(lbis[handle].vtx, lbis[handle].vtx + lbis[handle].offset, buffer_size - (lbis[handle].offset + lbis[handle].npts));
-	  num_total_vertices -= lbis[handle].npts;
-	  lbis[handle].bvalid = false;
-	  lbis[handle].npts = 0;
-	  lbis[handle].offset = 0;
-	  lbis[handle].vtx = 0;
+    memcpy(lbis[handle].vtx, lbis[handle].vtx + lbis[handle].offset, buffer_size - (lbis[handle].offset + lbis[handle].npts));
+    num_total_vertices -= lbis[handle].npts;
+    lbis[handle].bvalid = false;
+    lbis[handle].npts = 0;
+    lbis[handle].offset = 0;
+    lbis[handle].vtx = 0;
   }
 }
 
@@ -1495,19 +1470,19 @@ void c_gl_point_obj::add(const int num_points, const float * points)
 
 void c_gl_point_obj::render(const glm::mat4 & PV)
 {
-	glPointSize(size);
+  glPointSize(size);
 
-	glm::mat4 T(1.0);
-	T = glm::translate(T, t);
-	glm::mat4 m = PV * T * R;
-	glUniformMatrix4fv(Mmvploc, 1, GL_FALSE, glm::value_ptr(m));
-	glUniform4fv(clrloc, 1, glm::value_ptr(clr));
-	glUniform1i(modeloc, 2);
-	glBindVertexArray(vao);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	glEnableVertexAttribArray(posloc);
+  glm::mat4 T(1.0);
+  T = glm::translate(T, t);
+  glm::mat4 m = PV * T * R;
+  glUniformMatrix4fv(Mmvploc, 1, GL_FALSE, glm::value_ptr(m));
+  glUniform4fv(clrloc, 1, glm::value_ptr(clr));
+  glUniform1i(modeloc, 2);
+  glBindVertexArray(vao);
+  glBindBuffer(GL_ARRAY_BUFFER, vbo);
+  glEnableVertexAttribArray(posloc);
 
-	glDrawArrays(GL_POINTS, 0, num_total_vertices);
+  glDrawArrays(GL_POINTS, 0, num_total_vertices);
 }
 
 //////////////////////////////////////////////////////////////////// c_gl_2d_line_obj
@@ -1842,7 +1817,7 @@ bool c_gl_2d_obj::init_circle(GLuint _modeloc, GLuint _trnloc, GLuint _scloc,
   prottype.idxt = prottype.idxs + prottype.nidxs;
   prottype.r = glm::vec2(rx, ry);
   
-  float th, thstep = (float)(2.0 * CV_PI / (float) npts);
+  float th, thstep = (float)(2.0 * PI / (float) npts);
   for (int iv = 0; iv < npts; iv++){
     th = (float)(thstep * (float) iv);
     prottype.vtx[iv].x = (float)(rx * cos(th));
@@ -1920,64 +1895,64 @@ bool c_gl_2d_obj::init(GLuint _modeloc, GLuint _trnloc, GLuint _scloc,
     }
     
     // eliminating same edges
-	for (int i = 0; i < nids; i++) {
-		for (int j = i + 1; j < nids; j++) {
-			if (edges[j].b < 0)
-				continue;
-			if ((edges[j].b == edges[i].b && edges[j].e == edges[i].e) ||
-				(edges[j].b == edges[i].e && edges[j].e == edges[i].b)){
-				edges[j].b = -1;
-				edges[i].b = -1;
-			}
-		}
+    for (int i = 0; i < nids; i++) {
+      for (int j = i + 1; j < nids; j++) {
+	if (edges[j].b < 0)
+	  continue;
+	if ((edges[j].b == edges[i].b && edges[j].e == edges[i].e) ||
+	    (edges[j].b == edges[i].e && edges[j].e == edges[i].b)){
+	  edges[j].b = -1;
+	  edges[i].b = -1;
 	}
+      }
+    }
     
     // relocating edges
-	int nidxs = 0, idx_min = INT_MAX;
-	for (int i = 0; i < nids; i++) {
-		if (edges[i].b < 0) {
-			for (int j = i + 1; j < nids; j++) {
-				if (edges[j].b >= 0) {
-					edges[i] = edges[j];
-					edges[j].b = -1;
-					break;
-				}
-			}
-		}
-
-		if(edges[i].b >= 0){
-			idx_min = min(idx_min, edges[i].b);
-			idx_min = min(idx_min, edges[i].e);
-			nidxs++;
-		}
+    int nidxs = 0, idx_min = INT_MAX;
+    for (int i = 0; i < nids; i++) {
+      if (edges[i].b < 0) {
+	for (int j = i + 1; j < nids; j++) {
+	  if (edges[j].b >= 0) {
+	    edges[i] = edges[j];
+	    edges[j].b = -1;
+	    break;
+	  }
 	}
-	nidxs += 1;
+      }
 
-	// allocating and loading shape index array
-	prottype.nidxs = nidxs;
-	prottype.idxs = new unsigned short[nidxs + nids];
-	prottype.idxt = prottype.idxs + nidxs;
-	prottype.idxs[0] = idx_min;
-	for (int i = 0; i < nidxs - 1; i++) {
-		for (int iedge = 0; iedge < nidxs - 1; iedge++) {
-			if (edges[iedge].b == prottype.idxs[i]) {
-				prottype.idxs[i + 1] = edges[iedge].e;
-				edges[iedge].b = edges[iedge].e = -1;
-				break;
-			}
-			else if (edges[iedge].e == prottype.idxs[i]) {
-				prottype.idxs[i + 1] = edges[iedge].b;
-				edges[iedge].b = edges[iedge].e = -1;
-				break;
-			}
-		}
-	}
+      if(edges[i].b >= 0){
+	idx_min = min(idx_min, edges[i].b);
+	idx_min = min(idx_min, edges[i].e);
+	nidxs++;
+      }
+    }
+    nidxs += 1;
 
-	if (prottype.idxs[0] != prottype.idxs[nidxs - 1]) {
-		delete[] prottype.idxs;
-		cerr << "Given 2d object is not closed shape." << endl;
-		return false;
+    // allocating and loading shape index array
+    prottype.nidxs = nidxs;
+    prottype.idxs = new unsigned short[nidxs + nids];
+    prottype.idxt = prottype.idxs + nidxs;
+    prottype.idxs[0] = idx_min;
+    for (int i = 0; i < nidxs - 1; i++) {
+      for (int iedge = 0; iedge < nidxs - 1; iedge++) {
+	if (edges[iedge].b == prottype.idxs[i]) {
+	  prottype.idxs[i + 1] = edges[iedge].e;
+	  edges[iedge].b = edges[iedge].e = -1;
+	  break;
 	}
+	else if (edges[iedge].e == prottype.idxs[i]) {
+	  prottype.idxs[i + 1] = edges[iedge].b;
+	  edges[iedge].b = edges[iedge].e = -1;
+	  break;
+	}
+      }
+    }
+
+    if (prottype.idxs[0] != prottype.idxs[nidxs - 1]) {
+      delete[] prottype.idxs;
+      cerr << "Given 2d object is not closed shape." << endl;
+      return false;
+    }
   }
 
   prottype.vtx = new s_vertex[npts];
@@ -1987,23 +1962,23 @@ bool c_gl_2d_obj::init(GLuint _modeloc, GLuint _trnloc, GLuint _scloc,
 
 
   /*
-  cout << "points";
-  for (int ipt = 0; ipt < npts; ipt++){
+    cout << "points";
+    for (int ipt = 0; ipt < npts; ipt++){
     cout << "[" << ipt << "](" << prottype.vtx[ipt].x << "," << prottype.vtx[ipt].y << ")";
-  }
-  cout << endl;
+    }
+    cout << endl;
   
-  cout << "tridx" << endl;
-  for(int idx = 0; idx < nids; idx+=3){
+    cout << "tridx" << endl;
+    for(int idx = 0; idx < nids; idx+=3){
     cout << "[" << idx / 3 << "](" << prottype.idxt[idx] << "," << prottype.idxt[idx+1] << "," << prottype.idxt[idx+2] << ")";
-  }
-  cout << endl;
+    }
+    cout << endl;
   
-  cout << "shidx" << endl;
-  for(int idx = 0; idx < prottype.nidxt; idx++){
+    cout << "shidx" << endl;
+    for(int idx = 0; idx < prottype.nidxt; idx++){
     cout << prottype.idxt[idx] << ",";
-  }
-  cout << endl;
+    }
+    cout << endl;
   */
   
   // allocating instance buffer
@@ -2045,8 +2020,8 @@ int c_gl_2d_obj::add(const glm::vec4 & clr, const glm::vec2 & pos,
     iis.push_back(s_inst_inf());
     iis[handle].order = handle;
     iis_sorted_by_depth.push_back(handle);
-		iis[handle].order = handle;
-		reorder(handle);
+    iis[handle].order = handle;
+    reorder(handle);
   }
   
   iis[handle].bactive = true;
@@ -2524,3 +2499,4 @@ void c_gl_2d_obj::update_vertices()
 	       sizeof(unsigned short)* iis.size() * nids,
 	       idxbuf, GL_DYNAMIC_DRAW);
 }
+

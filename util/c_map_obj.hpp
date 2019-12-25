@@ -1,4 +1,4 @@
-// Copyright(c) 2017 Yohei Matsumoto, All right reserved. 
+// Copyright(c) 2017-2019 Yohei Matsumoto, All right reserved. 
 
 // c_map_obj.hpp is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -11,7 +11,9 @@
 // GNU General Public License for more details.
 
 // You should have received a copy of the GNU General Public License
-// along with c_map_obj.hpp.  If not, see <http://www.gnu.org/licenses/>. 
+// along with c_map_obj.hpp.  If not, see <http://www.gnu.org/licenses/>.
+
+#include "types.hpp"
 
 class c_map_obj
 {
@@ -22,7 +24,7 @@ protected:
   glm::vec2 sz_scrn;
   float pix_per_meter;
   float meter_per_pix;
-  Mat Rmap;
+  double Rmap[9];
   float xmap, ymap, zmap;
   
   glm::vec3 calc_fpv_pos(const float rx, const float ry, const float rz)
@@ -65,11 +67,12 @@ public:
     sz_scrn.y = (float)(_sz_scrn.y * 0.5);
   }
   
-  void set_map_param(const float _pix_per_meter, const Mat & Rorg, const float xorg, const float yorg, const float zorg)
+  void set_map_param(const float _pix_per_meter, const double * Rorg,
+		     const float xorg, const float yorg, const float zorg)
   {
     pix_per_meter = _pix_per_meter;
     meter_per_pix = (float)(1.0 / pix_per_meter);
-    Rmap = Rorg;
+    memcpy(Rmap, Rorg, sizeof(Rmap));
     xmap = xorg;
     ymap = yorg;
     zmap = zorg;

@@ -19,9 +19,6 @@
 #include "filter_base.hpp"
 #include "aws_map.hpp"
 
-#include <opencv2/opencv.hpp>
-using namespace cv;
-
 #include "f_glfw_window.hpp"
 
 #include "ch_state.hpp"
@@ -33,14 +30,6 @@ using namespace cv;
 #include "ch_radar.hpp"
 
 #define MAX_RT_FILES 10
-
-enum e_ui_mode {
-  ui_mode_fpv, ui_mode_map, ui_mode_sys, ui_mode_undef
-};
-
-enum e_ui_obj{
-  ui_obj_wp = 0, ui_obj_vsl, ui_obj_mrk, ui_obj_cl, ui_obj_undef 
-};
 
 #include "util/c_ui_box.hpp"
 #include "util/c_map_obj.hpp"
@@ -63,7 +52,7 @@ class f_ui_manager: public f_glfw_window
   } mouse_state;
   
  private:
-  void cnv_img_to_view(Mat & img, float av, Size & sz, bool flipx, bool flipy);
+  void cnv_img_to_view(cv::Mat & img, float av, cv::Size & sz, bool flipx, bool flipy);
   
   bool m_verb;
   
@@ -113,7 +102,7 @@ class f_ui_manager: public f_glfw_window
   c_gl_line_obj oline3d_map; /* 3d lin for map*/
   c_gl_radar oradar;
   
-  Mat m_cam;                   // main camera image (now empty)
+  cv::Mat m_cam;                   // main camera image (now empty)
   long long m_tcam, m_frm_cam; // time and frame number m_cam grabbed
   e_imfmt m_fmt_cam;           // image format of main camera
 
@@ -275,14 +264,14 @@ class f_ui_manager: public f_glfw_window
   const char * m_js_name;	// joystick name (glfw's naming)
 
   // mouse related members
-  glm::vec2 pt_mouse, pt_mouse_drag_begin, pt_mouse_bih;
-  glm::vec3 pt_mouse_ecef, pt_mouse_enu;
+  glm::dvec2 pt_mouse, pt_mouse_drag_begin, pt_mouse_bih;
+  glm::dvec3 pt_mouse_ecef, pt_mouse_enu;
   int mouse_button, mouse_action, mouse_mods;
   s_obj obj_mouse_on;
 
   // calc_mouse_enu_and_ecef_pos calculates global position the mouse
   // pointer is pointing on. 
-  void calc_mouse_enu_and_ecef_pos(e_ui_mode vm, Mat & Rown,
+  void calc_mouse_enu_and_ecef_pos(e_ui_mode vm, double * Rown,
 				   const float lat, const float lon, 
 				   const float xown, const float yown,
 				   const float zown, const float yaw);
@@ -330,7 +319,7 @@ class f_ui_manager: public f_glfw_window
 
   // map related members
   bool bmap_center_free;
-  Mat Rmap;
+  double Rmap[9];
   glm::vec2 pt_map_center_bih;
   glm::vec3 pt_map_center_ecef;
 
@@ -359,10 +348,10 @@ class f_ui_manager: public f_glfw_window
   glm::vec3 light;
 
   // video/screen capture related members
-  VideoWriter m_vw;
+  cv::VideoWriter m_vw;
   bool m_bsvw;         // screen video write
   bool m_bss;          // screen shot
-  Mat m_simg;	       // screen img
+  cv::Mat m_simg;	       // screen img
   void print_screen();
 
   // glfw event handler 

@@ -11,9 +11,20 @@
 // GNU General Public License for more details.
 
 // You should have received a copy of the GNU General Public License
-// along with c_map_obj.cpp.  If not, see <http://www.gnu.org/licenses/>. 
-
+// along with c_map_obj.cpp.  If not, see <http://www.gnu.org/licenses/>.
+#include <iostream>
+#include <vector>
+#include <list>
+#include <cmath>
+#include <climits>
+#include <map>
+using namespace std;
+#include "ch_obj.hpp"
+#include "ch_wp.hpp"
+#include "aws_coord.hpp"
+#include "aws_map.hpp"
 #include "aws_glib.hpp"
+#include "c_map_obj.hpp"
 
 int c_map_obj::display_depth = 10;
 
@@ -112,7 +123,8 @@ void c_map_waypoint_obj::update_drawings()
       {
         s_wp & wp_prev = wps[iwp - 1];
 		
-        float x[6] = { wp_prev.x, wp_prev.y, wp_prev.z, wp.x, wp.y, wp.z };
+        float x[6] = { (float)wp_prev.x, (float)wp_prev.y,
+		       (float)wp_prev.z, (float)wp.x, (float)wp.y, (float)wp.z };
         poline3d->config_points(hmarks[iwp].hline_next_3d, x);
         poline3d->enable(hmarks[iwp].hline_next_3d);
       }
@@ -280,7 +292,7 @@ void c_map_ais_obj::update_drawings()
     }
 
     c_ais_obj & obj = objs[iobj];
-    float x, y, z, rx, ry, rz, rxf, ryf, rzf;
+    double x, y, z, rx, ry, rz, rxf, ryf, rzf;
     obj.get_pos_ecef(x, y, z);
     eceftowrld(Rmap, xmap, ymap, zmap, x, y, z, rx, ry, rz);
 

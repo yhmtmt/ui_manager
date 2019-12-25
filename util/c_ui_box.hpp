@@ -12,6 +12,7 @@
 
 // You should have received a copy of the GNU General Public License
 // along with c_ui_box.hpp.  If not, see <http://www.gnu.org/licenses/>. 
+#include "types.hpp"
 
 class c_aws_ui_button
 {

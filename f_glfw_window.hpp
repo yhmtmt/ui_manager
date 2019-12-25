@@ -17,12 +17,6 @@
 // along with f_glfw_window.hpp  If not, see <http://www.gnu.org/licenses/>. 
 
 #include "filter_base.hpp"
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
-#include <GL/glut.h>
-#include <GL/glu.h>
-
-#include "util/aws_jpad.hpp"
 #include "util/aws_glib.hpp"
 
 inline void crossProduct(const float x1, const float y1, const float z1, 
@@ -48,7 +42,7 @@ inline void setEyeGl4x4(GLfloat * m)
   m[0] = m[5] = m[10] = m[15] = 1.0;
 }
 
-inline void reformRtAsGl4x4(Mat & R, Mat & t, GLfloat * m)
+inline void reformRtAsGl4x4(cv::Mat & R, cv::Mat & t, GLfloat * m)
 {
   // note that m is the OpenGL memory layout (say column major order)
   double * pR = R.ptr<double>();
@@ -204,7 +198,7 @@ protected:
     return m_pwin;
   }
   
-  Size m_sz_win;
+  cv::Size m_sz_win;
   
   virtual bool init_run();
   virtual void destroy_run();
@@ -257,7 +251,7 @@ protected:
   {
     MapGLFWin::iterator itr = m_map_glfwin.find(pwindow);
     f_glfw_window * ptr = itr->second;
-    ptr->m_sz_win = Size(width, height);
+    ptr->m_sz_win = cv::Size(width, height);
   }
 public:
   f_glfw_window(const char * name);

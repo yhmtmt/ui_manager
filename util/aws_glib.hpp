@@ -15,91 +15,105 @@
 #ifndef AWS_GLIB_HPP
 #define AWS_GLIB_HPP
 
+#include <GL/glew.h>
+#include <GLFW/glfw3.h>
+#include <GL/glut.h>
+#include <GL/glu.h>
+
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include "aws_const.hpp"
+#include "aws_vlib.hpp"
+#include "aws_jpad.hpp"
 
 // In my OpenGL use, the 2D renderer uses -1 to 1 normalized coordinate, 
 // The function convert OpenCV's pixel coordinate into normalized OpenGL coordinate.
-inline void cnvCvPoint2GlPoint(const Size & vp, const Point2f & ptcv, Point2f & ptgl)
+inline void cnvCvPoint2GlPoint(const cv::Size & vp, const cv::Point2f & ptcv, cv::Point2f & ptgl)
 {
   double fac_x = 2.0 / (double)vp.width, fac_y = 2.0 / (double)vp.height;
   ptgl.x = (float)(ptcv.x * fac_x - 1.0);
   ptgl.y = -(float)(ptcv.y * fac_y - 1.0);
 }
 
-inline void cnvCvPoint2GlPoint(const double fac_x, const double fac_y, const Point2f & ptcv, Point2f & ptgl)
+inline void cnvCvPoint2GlPoint(const double fac_x, const double fac_y, const cv::Point2f & ptcv, cv::Point2f & ptgl)
 {
   ptgl.x = (float)(ptcv.x * fac_x - 1.0);
   ptgl.y = -(float)(ptcv.y * fac_y - 1.0);
 }
 
-inline void cnvGlPoint2CvPoint(const float fac_x, const float fac_y, const float xorg, const float yorg,
-  const float w, const float h, const Point2f & ptgl, Point2f & ptcv)
+inline void cnvGlPoint2CvPoint(const float fac_x, const float fac_y,
+			       const float xorg, const float yorg,
+			       const float w, const float h,
+			       const cv::Point2f & ptgl, cv::Point2f & ptcv)
 {
   ptcv.x = (float)((ptgl.x - xorg) / fac_x);
   ptcv.y = (float)(-(ptgl.y - yorg - h) / fac_y);
 }
 
-inline void cnvCvPoint2GlPoint(const float fac_x, const float fac_y, const float xorg, const float yorg,
-  const float w, const float h, const Point2f & ptcv, Point2f & ptgl)
+inline void cnvCvPoint2GlPoint(const float fac_x, const float fac_y,
+			       const float xorg, const float yorg,
+			       const float w, const float h,
+			       const cv::Point2f & ptcv, cv::Point2f & ptgl)
 {
   ptgl.x = (float)(ptcv.x * fac_x + xorg);
   ptgl.y = (float)(h - ptcv.y * fac_y + yorg);
 }
 
 void drawGlText(float x, float y, const char * str,
-  const float r, const float g, const float b, const float alpha,
-  void* font);
+		const float r, const float g, const float b, const float alpha,
+		void* font);
 
 void drawGlSquare2Df(float x1, float y1, float x2, float y2,
-  const float r, const float g, const float b, const float alpha, const float size);
+		     const float r, const float g, const float b, const float alpha, const float size);
 
 void drawGlSquare2Df(float x1, float y1, float x2, float y2,
-  const float r, const float g, const float b, const float alpha);
+		     const float r, const float g, const float b, const float alpha);
 
 void drawGlTriangle2Df(float x1, float y1, float x2, float y2,
-  float x3, float y3, const float r, const float g, const float b, const float alpha, const float size);
+		       float x3, float y3,
+		       const float r, const float g, const float b, const float alpha, const float size);
 
 void drawGlTriangle2Df(float x1, float y1, float x2, float y2,
-  float x3, float y3, const float r, const float g, const float b, const float alpha);
+		       float x3, float y3,
+		       const float r, const float g, const float b, const float alpha);
 
-void drawGlPolygon2Df(Point2f * pts, int num_pts,
-  const float r, const float g, const float b, const float alpha, const float size);
+void drawGlPolygon2Df(cv::Point2f * pts, int num_pts,
+		      const float r, const float g, const float b, const float alpha, const float size);
 
-void drawGlPolygon2Df(Point2f * pts, int num_pts,
-  const float r, const float g, const float b, const float alpha);
+void drawGlPolygon2Df(cv::Point2f * pts, int num_pts,
+		      const float r, const float g, const float b, const float alpha);
 
-void drawGlPolygon2Df(Point2f * pts, int num_pts, const Point2f & offset,
-  const float r, const float g, const float b, const float alpha, const float size);
+void drawGlPolygon2Df(cv::Point2f * pts, int num_pts, const cv::Point2f & offset,
+		      const float r, const float g, const float b, const float alpha, const float size);
 
-void drawGlPolygon2Df(Point2f * pts, int num_pts, const Point2f & offset,
-  const float r, const float g, const float b, const float alpha);
+void drawGlPolygon2Df(cv::Point2f * pts, int num_pts, const cv::Point2f & offset,
+		      const float r, const float g, const float b, const float alpha);
 
 
 void drawGlLine2Df(float x1, float y1, float x2, float y2,
-  const float r, const float g, const float b, const float alpha, const float size);
+		   const float r, const float g, const float b, const float alpha, const float size);
 
-void drawCvPoints(const Size & vp, vector<Point2f> & pts,
-  const float r, const float g, const float b, const float alpha,
-  const float l /*point size*/);
-void drawCvChessboard(const Size & vp, vector<Point2f> & pts,
-  const float r, const float g, const float b, const float alpha,
-  const float l /* point size */, const float w /* line width */);
-void drawCvPointDensity(Mat hist, const int hist_max, const Size grid,
-  const float r, const float g, const float b, const float alpha,
-  const float w /* line width of the grid */);
+void drawCvPoints(const cv::Size & vp, vector<cv::Point2f> & pts,
+		  const float r, const float g, const float b, const float alpha,
+		  const float l /*point size*/);
+void drawCvChessboard(const cv::Size & vp, vector<cv::Point2f> & pts,
+		      const float r, const float g, const float b, const float alpha,
+		      const float l /* point size */, const float w /* line width */);
+void drawCvPointDensity(cv::Mat hist, const int hist_max, const cv::Size grid,
+			const float r, const float g, const float b, const float alpha,
+			const float w /* line width of the grid */);
 
-void cnvCvRTToGlRT(const Mat & r, const Mat & t, GLdouble * m);
-void cnvCvRTToGlRT(const Mat & r, const Mat & t, GLfloat * m);
+void cnvCvRTToGlRT(const cv::Mat & r, const cv::Mat & t, GLdouble * m);
+void cnvCvRTToGlRT(const cv::Mat & r, const cv::Mat & t, GLfloat * m);
 void printGlMatrix(const GLfloat * m);
 void printGlMatrix(const GLdouble * m);
 
 bool load_glsl_program(const char * ffs, const char * fvs, GLuint & p);
 
 class c_gl_obj{
- private:
- public:
+private:
+public:
   c_gl_obj(){};
   virtual ~c_gl_obj(){};
   virtual size_t get_reserved_resource_size() = 0;
@@ -108,7 +122,7 @@ class c_gl_obj{
 
 class c_gl_radar
 {
- private:
+private:
   bool benable;
   int spokes, spoke_len_max;
   GLuint modeloc, trnloc, scloc, posloc, txcloc, smploc, clrloc, bkgclrloc, depthloc;
@@ -123,22 +137,23 @@ class c_gl_radar
     float x, y;
     float u, v;
   };
-  Mat texture_buffer;
+  cv::Mat texture_buffer;
   int num_vertices, num_indices;
   s_vertex * vertices; // built as _spokes * (3(in arc) + 1(in center))
   unsigned short * indices;
   
   glm::vec4 clr, bkgclr;
- public:
- c_gl_radar():benable(false), spokes(0), spoke_len_max(0), htex(0), vao(0), vertices(NULL), indices(NULL), range_meters(1852)
-    {
-      
+public:
+  c_gl_radar():benable(false), spokes(0), spoke_len_max(0),
+	       htex(0), vao(0), vertices(NULL), indices(NULL),
+	       range_meters(1852)
+  {      
   }
 
   ~c_gl_radar()
-    {
-      destroy();
-    }
+  {
+    destroy();
+  }
   
   bool init(int _spokes, int _spoke_len_max, GLuint _modeloc,
 	    GLuint _trnloc, GLuint _scloc,
@@ -173,10 +188,10 @@ class c_gl_radar
   
   void set_depth(int depth)
   {
-      z = -1.0 + (float)(depth * zstep);
+    z = -1.0 + (float)(depth * zstep);
   }
 
-  void update_image(Mat &img);
+  void update_image(cv::Mat &img);
   void update_spoke(const long long _t,
 		    const double _lat, const double _lon,
 		    const int _range_meters,
@@ -260,7 +275,7 @@ private:
     s_vertex * vtx;
     unsigned short * idx;
     s_string_buffer_inf() :str(NULL), offset(0), length(0), bact(false), bvalid(false), bupdate(false),
-      vtx(NULL), idx(NULL), z(-1.0)
+			   vtx(NULL), idx(NULL), z(-1.0)
     {}
     ~s_string_buffer_inf()
     {
@@ -290,9 +305,9 @@ public:
 
   bool init(const char * ftex, const char * finf, GLuint _modeloc,
 	    GLuint _trnloc, GLuint _scloc,
-    GLuint _posloc, GLuint _txcloc, GLuint _smploc,
-    GLuint _clrloc, GLuint _bkgclrloc, GLuint _depthloc,
-    unsigned int _sz_buf = 4096);
+	    GLuint _posloc, GLuint _txcloc, GLuint _smploc,
+	    GLuint _clrloc, GLuint _bkgclrloc, GLuint _depthloc,
+	    unsigned int _sz_buf = 4096);
 
   void destroy();
 
@@ -300,8 +315,8 @@ public:
   void set(const int handle, const char * str);
 
   void config(const int handle, const glm::vec4 & clr, const glm::vec4 & bkgclr, const glm::vec2 & sz_fnt,
-    const glm::vec2 & mgn, const e_anchor sc,
-    const glm::vec2 & t, const float  rot, const int depth = 0);
+	      const glm::vec2 & mgn, const e_anchor sc,
+	      const glm::vec2 & t, const float  rot, const int depth = 0);
   void config_font_size(const int handle, const glm::vec2 & sz_fnt);
   void config_font_space(const int handle, const glm::vec2 & mgn);
   void config_color(const int handle, const glm::vec4 & clr, const glm::vec4 & bkgclr);
@@ -370,7 +385,7 @@ private:
     glm::mat4 R;
 
     s_line_buffer_inf() :offset(0), npts(0), vtx(NULL),
-      bvalid(false), bactive(false), w(1.f), t(0,0,0), R(1.0)
+			 bvalid(false), bactive(false), w(1.f), t(0,0,0), R(1.0)
     {}
   };
 
@@ -382,7 +397,7 @@ public:
   virtual ~c_gl_line_obj();
 
   bool init(GLuint modeloc, GLuint posloc, GLuint Mmvploc, GLuint clrloc,
-    unsigned int buffer_size = 4096);
+	    unsigned int buffer_size = 4096);
   int add(const int npts, const float * pts);
 
   void destroy();
@@ -395,17 +410,17 @@ public:
   void enable(const int handle)
   {
     if (handle < lbis.size())
-    {
-      lbis[handle].bactive = true;
-    }
+      {
+	lbis[handle].bactive = true;
+      }
   }
 
   void disable(const int handle)
   {
     if (handle < lbis.size())
-    {
-      lbis[handle].bactive = false;
-    }
+      {
+	lbis[handle].bactive = false;
+      }
   }
 
   void config_color(const glm::vec4 & _clr)
@@ -568,7 +583,7 @@ class c_gl_2d_line_obj: public c_gl_obj
     glm::mat2 R;
     unsigned int offset;
     unsigned int npts;
-  s_line_buffer_inf() :offset(0), npts(0), vtx(NULL), bvalid(false), bactive(false), bupdated(false), w(1.0), z(1.0), rot(0.f), t(0,0)
+    s_line_buffer_inf() :offset(0), npts(0), vtx(NULL), bvalid(false), bactive(false), bupdated(false), w(1.0), z(1.0), rot(0.f), t(0,0)
     {}
   };
 
@@ -580,7 +595,7 @@ public:
   virtual ~c_gl_2d_line_obj();
 
   bool init(GLuint modeloc, GLuint trnloc, GLuint scloc, GLuint posloc, GLuint clrloc, GLuint _depthloc,
-    unsigned int buffer_size = 4096);
+	    unsigned int buffer_size = 4096);
   int add(const int npts, const float * pts, bool blines = false);
 
   void destroy();
@@ -591,17 +606,17 @@ public:
   void enable(const int handle)
   {
     if (handle < lbis.size())
-    {
-      lbis[handle].bactive = true;
-    }
+      {
+	lbis[handle].bactive = true;
+      }
   }
 
   void disable(const int handle)
   {
     if (handle < lbis.size())
-    {
-      lbis[handle].bactive = false;
-    }
+      {
+	lbis[handle].bactive = false;
+      }
   }
 
   void config_color(const glm::vec4 & _clr)
@@ -774,37 +789,37 @@ public:
   void enable(const int handle)
   {
     if (handle < iis.size())
-    {
-      iis[handle].bactive = true;
-    }
+      {
+	iis[handle].bactive = true;
+      }
   }
 
   bool is_enabled(const int handle)
   {
     if (handle < iis.size())
-    {
-      return iis[handle].bactive;
-    }
+      {
+	return iis[handle].bactive;
+      }
     return false;
   }
 
   void disable(const int handle)
   {
     if (handle < iis.size())
-    {
-      iis[handle].bactive = false;
-    }
+      {
+	iis[handle].bactive = false;
+      }
   }
 
   bool init(GLuint _modeloc, GLuint _trnloc, GLuint _scloc, GLuint _posloc, GLuint _clrloc, GLuint _depthloc,
-    const unsigned int npts, const float * points,
-    const unsigned int nids, const unsigned short * indices,
-    const unsigned int buffer_size = 64);
+	    const unsigned int npts, const float * points,
+	    const unsigned int nids, const unsigned short * indices,
+	    const unsigned int buffer_size = 64);
   
   bool init_rectangle(GLuint _modeloc, GLuint _trnloc, GLuint _scloc, GLuint _posloc, GLuint _clrloc, GLuint _depthloc,
-    const glm::vec2 & plb, glm::vec2 & sz, const unsigned int buffer_size = 64);
+		      const glm::vec2 & plb, glm::vec2 & sz, const unsigned int buffer_size = 64);
   bool init_circle(GLuint _modeloc, GLuint _trnloc, GLuint _scloc, GLuint _posloc, GLuint _clrloc, GLuint _depthloc,
-    const unsigned int npts, const float rx, const float ry, const unsigned int buffer_size = 64);
+		   const unsigned int npts, const float rx, const float ry, const unsigned int buffer_size = 64);
 
   int add(const glm::vec4 & clr, const glm::vec2 & pos, const float rot = 0.0, const float scale = 1.0);
   int add(const glm::vec4 & clr, const glm::vec2 & pos, const float rot = 0.0, const glm::vec2 & scale = glm::vec2(1.0, 1.0));

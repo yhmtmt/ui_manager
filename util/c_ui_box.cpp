@@ -13,7 +13,13 @@
 // You should have received a copy of the GNU General Public License
 // along with c_ui_box.cpp.  If not, see <http://www.gnu.org/licenses/>. 
 
+#include <iostream>
+#include <fstream>
+#include <vector>
+using namespace std;
+
 #include "aws_glib.hpp"
+#include "c_ui_box.hpp"
 
 /////////////////////////////////////////////////////////////////// c_aws_ui_button
 c_gl_2d_obj * c_aws_ui_button::porect = NULL;
