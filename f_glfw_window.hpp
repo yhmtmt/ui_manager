@@ -256,12 +256,7 @@ protected:
 public:
   f_glfw_window(const char * name);
   virtual ~f_glfw_window();
-  
-  virtual bool is_main_thread()
-  {
-    return true;
-  }
-  
+    
   virtual bool proc();
   
   // glfw callbacks
