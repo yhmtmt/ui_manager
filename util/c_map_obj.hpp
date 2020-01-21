@@ -239,7 +239,7 @@ private:
   glm::vec2 pos_str;
 public:
   bool init(c_gl_2d_line_obj * poline, c_gl_text_obj * potxt, const glm::vec4 & clr, glm::vec2 sz_fnt, glm::vec2 & sz);
-  void set_cursor_position(const glm::vec2 & _pos_mouse, const glm::vec2 & _pos_bih);
+  void set_cursor_position(const glm::vec2 & _pos_mouse, const glm::vec2 & _pos_blh);
   void enable_arrow();
   void enable_pos();
   void disable();

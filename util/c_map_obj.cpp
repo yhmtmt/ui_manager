@@ -302,7 +302,7 @@ void c_map_ais_obj::update_drawings()
     obj.get_tdcpa(tcpa, dcpa);
     obj.get_vel_rel(vxr, vyr, vzr);
     obj.get_vel_vec2d(nvx, nvy);
-    obj.get_vel_bih(cog, sog);
+    obj.get_vel_blh(cog, sog);
     obj.get_att(roll, pitch, yaw);
 
     rxf = rx + vxr * tvel;
@@ -628,7 +628,7 @@ bool c_cursor::init(c_gl_2d_line_obj * _poline, c_gl_text_obj * _potxt,
 
 
 void c_cursor::set_cursor_position(const glm::vec2 & _pos_mouse,
-				   const glm::vec2 & _pos_bih)
+				   const glm::vec2 & _pos_blh)
 {
   glm::vec2 pos = _pos_mouse + pos_str;
   potxt->config_position(hpos_str, pos);
@@ -636,7 +636,7 @@ void c_cursor::set_cursor_position(const glm::vec2 & _pos_mouse,
   poline->config_position(harrow, _pos_mouse);
   char buf[64];
   snprintf(buf, 64, "%3.8f\n%3.8f\n",
-	   _pos_bih.x * 180.f / PI, _pos_bih.y * 180.0f / PI);
+	   _pos_blh.x * 180.f / PI, _pos_blh.y * 180.0f / PI);
   potxt->set(hpos_str, buf);
 }
 

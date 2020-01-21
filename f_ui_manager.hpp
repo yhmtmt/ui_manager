@@ -264,7 +264,7 @@ class f_ui_manager: public f_glfw_window
   const char * m_js_name;	// joystick name (glfw's naming)
 
   // mouse related members
-  glm::dvec2 pt_mouse, pt_mouse_drag_begin, pt_mouse_bih;
+  glm::dvec2 pt_mouse, pt_mouse_drag_begin, pt_mouse_blh;
   glm::dvec3 pt_mouse_ecef, pt_mouse_enu;
   int mouse_button, mouse_action, mouse_mods;
   s_obj obj_mouse_on;
@@ -320,7 +320,7 @@ class f_ui_manager: public f_glfw_window
   // map related members
   bool bmap_center_free;
   double Rmap[9];
-  glm::vec2 pt_map_center_bih;
+  glm::vec2 pt_map_center_blh;
   glm::vec3 pt_map_center_ecef;
 
   unsigned int map_range_base;

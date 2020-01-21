@@ -1466,7 +1466,7 @@ void f_ui_manager::handle_ctrl_csr()
   float th_mouse = (float)(atan2(pt_mouse.y, pt_mouse.x) * 180.0 / PI);
   float d_mouse = (float)sqrt(pt_mouse_enu.x * pt_mouse_enu.x + pt_mouse_enu.y + pt_mouse_enu.y);
   
-  m_ch_ap_inst->set_csr_pos(pt_mouse_bih.x, pt_mouse_bih.y, pt_mouse_enu.x, pt_mouse_enu.y, d_mouse, th_mouse);
+  m_ch_ap_inst->set_csr_pos(pt_mouse_blh.x, pt_mouse_blh.y, pt_mouse_enu.x, pt_mouse_enu.y, d_mouse, th_mouse);
   ctrl_sog_tgt();
 }
 
@@ -1483,8 +1483,8 @@ void f_ui_manager::calc_mouse_enu_and_ecef_pos(
 	pt_map_center_ecef.x = xown;
 	pt_map_center_ecef.y = yown;
 	pt_map_center_ecef.z = zown;
-	pt_map_center_bih.x = (float)(lat * PI / 180.0f);
-	pt_map_center_bih.y = (float)(lon * PI / 180.0f);
+	pt_map_center_blh.x = (float)(lat * PI / 180.0f);
+	pt_map_center_blh.y = (float)(lon * PI / 180.0f);
 	memcpy(Rmap, Rown, sizeof(Rmap));
       }
       pt_mouse_enu.x = pt_mouse.x * meter_per_pix;
@@ -1494,16 +1494,16 @@ void f_ui_manager::calc_mouse_enu_and_ecef_pos(
       wrldtoecef(Rmap, pt_map_center_ecef.x, pt_map_center_ecef.y, pt_map_center_ecef.z,
 		 pt_mouse_enu.x, pt_mouse_enu.y, pt_mouse_enu.z,
 		 pt_mouse_ecef.x, pt_mouse_ecef.y, pt_mouse_ecef.z);
-      eceftobih(pt_mouse_ecef.x, pt_mouse_ecef.y, pt_mouse_ecef.z,
-		pt_mouse_bih.x, pt_mouse_bih.y, alt);
+      eceftoblh(pt_mouse_ecef.x, pt_mouse_ecef.y, pt_mouse_ecef.z,
+		pt_mouse_blh.x, pt_mouse_blh.y, alt);
     }
   else if (vm == ui_mode_fpv)
     {
       pt_map_center_ecef.x = xown;
       pt_map_center_ecef.y = yown;
       pt_map_center_ecef.z = zown;
-      pt_map_center_bih.x = lat;
-      pt_map_center_bih.y = lon;
+      pt_map_center_blh.x = lat;
+      pt_map_center_blh.y = lon;
       memcpy(Rmap, Rown, sizeof(Rmap));
       
       glm::vec2 phi(atan2(pt_mouse.x, fcam), atan2(-pt_mouse.y, fcam));
@@ -1535,8 +1535,8 @@ void f_ui_manager::calc_mouse_enu_and_ecef_pos(
 		 pt_map_center_ecef.x, pt_map_center_ecef.y, pt_map_center_ecef.z,
 		 pt_mouse_enu.x, pt_mouse_enu.y, pt_mouse_enu.z,
 		 pt_mouse_ecef.x, pt_mouse_ecef.y, pt_mouse_ecef.z);
-      eceftobih(pt_mouse_ecef.x, pt_mouse_ecef.y, pt_mouse_ecef.z,
-		pt_mouse_bih.x, pt_mouse_bih.y, alt);
+      eceftoblh(pt_mouse_ecef.x, pt_mouse_ecef.y, pt_mouse_ecef.z,
+		pt_mouse_blh.x, pt_mouse_blh.y, alt);
     }
 }
 
@@ -1551,7 +1551,7 @@ void f_ui_manager::add_waypoint(c_route_cfg_box * prc_box)
   }
   
   m_ch_wp->lock();
-  m_ch_wp->ins(pt_mouse_bih.x, pt_mouse_bih.y, 10.0, (float)spd);
+  m_ch_wp->ins(pt_mouse_blh.x, pt_mouse_blh.y, 10.0, (float)spd);
   m_ch_wp->unlock();
 }
 
@@ -1559,9 +1559,9 @@ void f_ui_manager::drag_waypoint()
 {
   m_ch_wp->lock();
   s_wp & wp = m_ch_wp->get_focused_wp();
-  wp.lat = pt_mouse_bih.x;
-  wp.lon = pt_mouse_bih.y;
-  bihtoecef(wp.lat, wp.lon, 0., wp.x, wp.y, wp.z);
+  wp.lat = pt_mouse_blh.x;
+  wp.lon = pt_mouse_blh.y;
+  blhtoecef(wp.lat, wp.lon, 0., wp.x, wp.y, wp.z);
   
   m_ch_wp->unlock();
 }
@@ -1589,11 +1589,11 @@ void f_ui_manager::drag_map()
   pt_map_center_ecef.y = (float) ynew;
   pt_map_center_ecef.z = (float) znew;
 
-  eceftobih(xnew, ynew, znew,
+  eceftoblh(xnew, ynew, znew,
 	    latnew, lonnew, altnew);
   getwrldrot(latnew, lonnew, Rmap);
-  pt_map_center_bih.x = (float)latnew;
-  pt_map_center_bih.y = (float)lonnew;
+  pt_map_center_blh.x = (float)latnew;
+  pt_map_center_blh.y = (float)lonnew;
   pt_mouse_drag_begin = pt_mouse;
 }
 
@@ -1641,7 +1641,7 @@ void f_ui_manager::handle_base_mouse_event(c_view_mode_box * pvm_box, c_ctrl_mod
   
   if (obj_mouse_on.type == ot_nul){
     ocsr.enable_pos();
-    ocsr.set_cursor_position(pt_mouse, pt_mouse_bih);
+    ocsr.set_cursor_position(pt_mouse, pt_mouse_blh);
   }
   else {
     ocsr.disable();
@@ -1740,7 +1740,7 @@ void f_ui_manager::handle_updated_ui_box(c_view_mode_box * pvm_box, c_ctrl_mode_
   uim.reset_box_updated();
   
   ocsr.enable_arrow();
-  ocsr.set_cursor_position(pt_mouse, pt_mouse_bih);
+  ocsr.set_cursor_position(pt_mouse, pt_mouse_blh);
   clear_mouse_event();
 }
 
