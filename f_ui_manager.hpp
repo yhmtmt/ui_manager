@@ -1,4 +1,4 @@
-// Copyright(c) 2016-2019 Yohei Matsumoto, All right reserved. 
+// Copyright(c) 2016-2020 Yohei Matsumoto, All right reserved. 
 
 // f_ui_manager.hpp is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -36,7 +36,7 @@
 
 class f_ui_manager: public f_glfw_window
 {
- public:
+public:
   enum e_obj_type{
     ot_wp, ot_cl, ot_ais, ot_mark, ot_nul
   };
@@ -44,14 +44,14 @@ class f_ui_manager: public f_glfw_window
   struct s_obj{
     e_obj_type type;
     int handle;
-  s_obj():type(ot_nul), handle(-1){}
+    s_obj():type(ot_nul), handle(-1){}
   };
   
   enum e_mouse_state{
     ms_add_wp, ms_drag, ms_normal
   } mouse_state;
   
- private:
+private:
   void cnv_img_to_view(cv::Mat & img, float av, cv::Size & sz, bool flipx, bool flipy);
   
   bool m_verb;
@@ -163,8 +163,8 @@ class f_ui_manager: public f_glfw_window
 		   toil, temp, valt, frate, teng, pclnt, pfl, ld, tq,
 		   str_steng1, str_steng2, m_stat.seng_aws, m_stat.rud_aws,
 		   cogf, (float)(cog_tgt * (PI/180.f)), sog, sog_tgt, yawf,
-		  (float)(pitch* (PI / 180.f)), (float)(-roll* (PI / 180.f)),
-		  depth);
+		   (float)(pitch* (PI / 180.f)), (float)(-roll* (PI / 180.f)),
+		   depth);
     
     ind.set_dir_cam(dir_cam_hdg + dir_cam_hdg_drag);
 
@@ -180,7 +180,7 @@ class f_ui_manager: public f_glfw_window
   c_map_coast_line_obj coast_line; // coast line object
   bool bupdate_map;		// flag to notify reload the map 
   glm::vec3 pt_prev_map_update;	// position previous map update invoked. 
-								    //(if the distance from the point has been larger than map range, bupdate_map is asserted.) 
+  //(if the distance from the point has been larger than map range, bupdate_map is asserted.) 
 
   c_map_ais_obj oais;		// ais object
   int num_max_ais;	        // maximum number of ais objects ui can draw.
@@ -305,10 +305,10 @@ class f_ui_manager: public f_glfw_window
 
   void clear_mouse_state(c_route_cfg_box * prc_box)
   {
-	  if (mouse_state == ms_add_wp) {
-		  prc_box->command_processed(c_route_cfg_box::wp_add);
-	  }
-	  mouse_state = ms_normal;
+    if (mouse_state == ms_add_wp) {
+      prc_box->command_processed(c_route_cfg_box::wp_add);
+    }
+    mouse_state = ms_normal;
   }
   
   void add_waypoint(c_route_cfg_box * prc_box);
@@ -359,7 +359,7 @@ class f_ui_manager: public f_glfw_window
   virtual void _mouse_button_callback(int button, int action, int mods);
   virtual void _key_callback(int key, int scancode, int action, int mods);
 
- public:
+public:
   f_ui_manager(const char * name);
   virtual ~f_ui_manager();
 
