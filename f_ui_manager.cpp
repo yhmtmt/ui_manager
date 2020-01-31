@@ -515,6 +515,16 @@ bool f_ui_manager::setup_shader()
 
 void f_ui_manager::destroy_run()
 {
+  orect.destroy();
+  otri.destroy();
+  ocirc.destroy();
+  omap_mask.destroy();
+  otxt.destroy();
+  oline.destroy();
+  oline3d.destroy();
+  oline3d_map.destroy();
+  oradar.destroy();
+  
   f_glfw_window::destroy_run();
 }
 

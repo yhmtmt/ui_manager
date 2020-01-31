@@ -161,7 +161,7 @@ class f_ui_manager: public f_glfw_window
     const char *str_steng2 = ((steng2 >= 0 && steng2 <= EngineShuttingDown) ? strStatEng2[steng2] : NULL);
     ind.set_param( m_time_str, m_stat.meng_aws, rpm, rev_tgt, trim, poil,
 		   toil, temp, valt, frate, teng, pclnt, pfl, ld, tq,
-		   str_steng1, str_steng2, m_stat.seng_aws, m_stat.rud_aws,
+		   str_steng1, str_steng2, m_stat.rud_aws,
 		   cogf, (float)(cog_tgt * (PI/180.f)), sog, sog_tgt, yawf,
 		  (float)(pitch* (PI / 180.f)), (float)(-roll* (PI / 180.f)),
 		  depth);

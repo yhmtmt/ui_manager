@@ -580,12 +580,12 @@ public:
   c_gl_text_obj * potxt;
   
   const unsigned char veng_n, veng_nf, veng_nb;
-  unsigned char meng, seng, rud;
+  unsigned char eng, rud;
   float cog /*radian*/, sog, mrpm, yaw /*radian*/, pitch /*radian*/, roll /*radian*/;
   float cog_tgt, sog_tgt, mrpm_tgt;
   
-  int hmeng_in, hmeng_out, hseng_in, hseng_out, hrud_in, hrud_out;
-  int hmeng_n, hmeng_f, hmeng_b, hseng_n, hseng_f, hseng_b;
+  int heng_in, heng_out, hrud_in, hrud_out;
+  int heng_n, heng_f, heng_b;
   glm::vec2 scl_eng, scl_rud, pos_rud;
   
   void create_engine_indicator(int & heng_in, int & heng_out,
@@ -726,7 +726,7 @@ public:
 	    const float fovx, const glm::vec2 & sz_scrn);
   
   void set_param(const char * str_time,
-		 const unsigned char _meng,
+		 const unsigned char _eng,
 		 const float _mrpm, const float _mrpm_tgt,
 		 const unsigned char _mtrim,
 		 const int _mpoil, const float _mtoil,
@@ -735,7 +735,6 @@ public:
 		 const int _mpclnt, const int _mpfl,
 		 const unsigned char _mld, const unsigned char _mtq,
 		 const char * _mst1, const char * _mst2,
-		 const unsigned char _seng,
 		 const unsigned char _rud,
 		 const float _cog /*radian*/, const float _cog_tgt,
 		 const float _sog, const float sog_tgt,
