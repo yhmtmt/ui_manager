@@ -161,7 +161,7 @@ private:
     const char *str_steng2 = ((steng2 >= 0 && steng2 <= EngineShuttingDown) ? strStatEng2[steng2] : NULL);
     ind.set_param( m_time_str, m_stat.meng_aws, rpm, rev_tgt, trim, poil,
 		   toil, temp, valt, frate, teng, pclnt, pfl, ld, tq,
-		   str_steng1, str_steng2, m_stat.seng_aws, m_stat.rud_aws,
+		   str_steng1, str_steng2, m_stat.rud_aws,
 		   cogf, (float)(cog_tgt * (PI/180.f)), sog, sog_tgt, yawf,
 		   (float)(pitch* (PI / 180.f)), (float)(-roll* (PI / 180.f)),
 		   depth);
@@ -247,7 +247,7 @@ private:
   float sog_max, rev_max;
   float cog_tgt, sog_tgt, rev_tgt;
   
-  float m_rud_f, m_meng_f, m_seng_f;
+  float m_rud_f, m_meng_f;
   void handle_ctrl_crz(); // cruise mode: sticks are used to increase/decrease engine throttle and rudder angle 
   void handle_ctrl_ctl(); // control mode: positions of sticks are the throttle values. 
   void handle_ctrl_csr(); // cursor mode: follows cursor position 

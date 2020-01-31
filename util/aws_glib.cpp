@@ -604,6 +604,8 @@ void c_gl_radar::destroy()
     if(indices)
       delete[] indices;
     indices = NULL;
+
+    vao = 0;
   }
 
   if(htex != 0){

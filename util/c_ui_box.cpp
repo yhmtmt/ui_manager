@@ -1118,7 +1118,7 @@ const char * c_indicator::str_params[PRM_UNDEF] =
   };
 
 c_indicator::c_indicator() : porect(NULL), potri(NULL), poline(NULL), potxt(NULL),
-meng(127), seng(127), rud(0), cog(0.1f), sog(10), yaw(0.05f), pitch(0.5f), roll(0.5f),
+eng(127), rud(0), cog(0.1f), sog(10), yaw(0.05f), pitch(0.5f), roll(0.5f),
 veng_n(0x7f), veng_nf(0x7f + 0x19), veng_nb(0x7f - 0x19), dir_cam(0.f), mode(ui_mode_map)
 {
 }
@@ -1890,28 +1890,24 @@ bool c_indicator::init(c_gl_2d_line_obj * _poline, c_gl_text_obj * _potxt,
 
   float xmin = (float)(-sz_scrn.x * 0.5), xmax = (float)(-xmin),
     ymin = (float)(-sz_scrn.y * 0.5), ymax = (float)(-ymin);
-  // create meng/seng indicator (left bottom corner) 
+  // create eng indicator (left bottom corner) 
 
   scl_eng.x = sz_fnt.x;
   scl_eng.y = (float)(0.25 * sz_scrn.y);
   scl_rud.x = (float)(sz_scrn.x * 0.4);
   scl_rud.y = sz_fnt.y;
 
-  glm::vec2 pos_meng, pos_seng, pos_est;
-  pos_meng.x = xmin;
-  pos_meng.y = ymin;
-  pos_seng.x = xmin + sz_fnt.x;
-  pos_seng.y = ymin;
+  glm::vec2 pos_eng, pos_est;
+  pos_eng.x = xmin;
+  pos_eng.y = ymin;
   pos_rud.x = 0.f;
   pos_rud.y = ymin;
   pos_est.x = xmin + sz_fnt.x * 2;
   pos_est.y = ymin;
-  create_engine_indicator(hmeng_in, hmeng_out, hmeng_n, hmeng_f, hmeng_b, pos_meng, sz_fnt, clr);
+  create_engine_indicator(heng_in, heng_out, heng_n, heng_f, heng_b, pos_eng, sz_fnt, clr);
 
-  create_engine_indicator(hseng_in, hseng_out, hseng_n, hseng_f, hseng_b, pos_seng, sz_fnt, clr);
-
-  glm::vec2 pos_meng_state(xmin + 8 * sz_fnt.x, ymin + 10 * sz_fnt.y);  
-  create_engine_state_indicator(pos_meng_state, sz_fnt, clr);
+  glm::vec2 pos_eng_state(xmin + 8 * sz_fnt.x, ymin + 10 * sz_fnt.y);  
+  create_engine_state_indicator(pos_eng_state, sz_fnt, clr);
   
   create_params_indicator(pos_est, sz_fnt, clr);
   
@@ -1932,8 +1928,7 @@ bool c_indicator::init(c_gl_2d_line_obj * _poline, c_gl_text_obj * _potxt,
   glm::vec2 pos_time(pos_rud.x, pos_rud.y + sz_fnt.y * 1.5);
   create_time_indicator(hclk, pos_time, sz_fnt, clr);
   
-  update_engine_indicator(hmeng_in, hmeng_n, hmeng_f, hmeng_b, meng);
-  update_engine_indicator(hseng_in, hseng_n, hseng_f, hseng_b, seng);
+  update_engine_indicator(heng_in, heng_n, heng_f, heng_b, eng);
   update_engine_state_indicator();
   update_sog_indicator();
   update_rp_indicator();
@@ -1944,7 +1939,7 @@ bool c_indicator::init(c_gl_2d_line_obj * _poline, c_gl_text_obj * _potxt,
 }
 
 void c_indicator::set_param(const char * str_time,
-			    const unsigned char _meng,
+			    const unsigned char _eng,
 			    const float _mrpm, const float _mrpm_tgt,
 			    const unsigned char _mtrim,
 			    const int _mpoil, const float _mtoil,
@@ -1953,14 +1948,13 @@ void c_indicator::set_param(const char * str_time,
 			    const int _mpclnt, const int _mpfl,
 			    const unsigned char _mld, const unsigned char _mtq,
 			    const char * _mst1, const char * _mst2,
-			    const unsigned char _seng, const unsigned char _rud,
+			    const unsigned char _rud,
 			    const float _cog, const float _cog_tgt, 
 			    const float _sog, const float _sog_tgt,
 			    const float _yaw, const float _pitch,
 			    const float _roll, const float _depth)
 {
-  meng = _meng;
-  seng = _seng;
+  eng = _eng;
   rud = _rud;
   cog = _cog;
   mrpm = _mrpm;
@@ -1972,8 +1966,7 @@ void c_indicator::set_param(const char * str_time,
   pitch = _pitch;
   roll = _roll;
 
-  update_engine_indicator(hmeng_in, hmeng_n, hmeng_f, hmeng_b, meng);
-  update_engine_indicator(hseng_in, hseng_n, hseng_f, hseng_b, seng);
+  update_engine_indicator(heng_in, heng_n, heng_f, heng_b, eng);
   update_engine_state_indicator();
   update_params_indicator(_sog, _depth, _mrpm, _mtrim, _mpoil, _mtoil,
 			  _mtemp,  _mvalt,

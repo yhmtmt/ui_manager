@@ -87,7 +87,7 @@ f_ui_manager::f_ui_manager(const char * name) :
   map_range(4000), map_range_base(1000),  sz_mark(10.0f), mouse_state(ms_normal),
   bmap_center_free(false), btn_pushed(ebtn_nul), btn_released(ebtn_nul),
   ctrl_mode(cm_crz), crz_cm(crz_undef), stb_cm(stb_undef), stb_cog_tgt(FLT_MAX),
-  m_rud_f(127.), m_meng_f(127.), m_seng_f(127.),
+  m_rud_f(127.), m_meng_f(127.),
   bwear(false), twhbt_out(5 * SEC), twhbt(0), whbt0(USHRT_MAX), whbt(0),
   cog_tgt(0.f), sog_tgt(3.0f), rev_tgt(700),  sog_max(23),  rev_max(5600)
 {
@@ -117,7 +117,6 @@ f_ui_manager::f_ui_manager(const char * name) :
 
   register_fpar("acs", (int*) &m_stat.ctrl_src, (int) ACS_NONE, str_aws1_ctrl_src, "Control source.");
   register_fpar("meng", &m_meng_f, "Main engine instruction value");
-  register_fpar("seng", &m_seng_f, "Sub enggine instruction value");
   register_fpar("rud", &m_rud_f, "Rudder instruction value");
 
   register_fpar("verb", &m_verb, "Debug mode.");
@@ -321,7 +320,6 @@ bool f_ui_manager::init_run()
   m_inst.tcur = get_time();
   m_inst.rud_aws = 127;
   m_inst.meng_aws = 127;
-  m_inst.seng_aws = 127;
   
   if(!f_glfw_window::init_run())
     return false;
@@ -515,14 +513,24 @@ bool f_ui_manager::setup_shader()
 
 void f_ui_manager::destroy_run()
 {
+  orect.destroy();
+  otri.destroy();
+  ocirc.destroy();
+  omap_mask.destroy();
+  otxt.destroy();
+  oline.destroy();
+  oline3d.destroy();
+  oline3d_map.destroy();
+  oradar.destroy();
+  
   f_glfw_window::destroy_run();
 }
 
 void f_ui_manager::ui_force_ctrl_stop(c_ctrl_mode_box * pcm_box)
 {
   m_inst.ctrl_src = ACS_UI;
-  m_meng_f = m_seng_f = m_rud_f = 127.f;
-  m_inst.rud_aws = m_inst.meng_aws = m_inst.seng_aws = 127;
+  m_meng_f = m_rud_f = 127.f;
+  m_inst.rud_aws = m_inst.meng_aws = 127;
   ctrl_mode = cm_crz;
   pcm_box->set_mode(c_ctrl_mode_box::crz);
 }
@@ -1241,13 +1249,10 @@ void f_ui_manager::rcv_ctrl_stat()
   m_stat.ctrl_src = stat.ctrl_src;
   m_stat.rud_rmc = stat.rud_rmc;
   m_stat.meng_rmc = stat.meng_rmc;
-  m_stat.seng_rmc = stat.seng_rmc;
   m_stat.rud = stat.rud;
   m_stat.meng = stat.meng;
-  m_stat.seng = stat.seng;
   m_stat.rud_aws = stat.rud_aws;
   m_stat.meng_aws = stat.meng_aws;
-  m_stat.seng_aws = stat.seng_aws;
  
   m_stat.rud_sta = stat.rud_sta;
   m_stat.rud_sta_out = stat.rud_sta_out;
@@ -1262,12 +1267,6 @@ void f_ui_manager::rcv_ctrl_stat()
   m_stat.meng_nub_rmc = stat.meng_nub_rmc;
   m_stat.meng_min_rmc = stat.meng_min_rmc;
 
-  m_stat.seng_max_rmc = stat.seng_max_rmc;
-  m_stat.seng_nuf_rmc = stat.seng_nuf_rmc;
-  m_stat.seng_nut_rmc = stat.seng_nut_rmc;
-  m_stat.seng_nub_rmc = stat.seng_nub_rmc;
-  m_stat.seng_min_rmc = stat.seng_min_rmc;
-
   m_stat.rud_sta_max = stat.rud_sta_max;
   m_stat.rud_sta_nut = stat.rud_sta_nut;
   m_stat.rud_sta_min = stat.rud_sta_min;
@@ -1278,11 +1277,6 @@ void f_ui_manager::rcv_ctrl_stat()
   m_stat.meng_nub = stat.meng_nub;
   m_stat.meng_min = stat.meng_min;
 
-  m_stat.seng_max = stat.seng_max;
-  m_stat.seng_nuf = stat.seng_nuf;
-  m_stat.seng_nut = stat.seng_nut;
-  m_stat.seng_nub = stat.seng_nub;
-  m_stat.seng_min = stat.seng_min;
   m_stat.rud_max = stat.rud_max;
   m_stat.rud_nut = stat.rud_nut;
   m_stat.rud_min = stat.rud_min;
@@ -1391,11 +1385,8 @@ void f_ui_manager::handle_ctrl_crz()
       else if (m_meng_f > crz_cmd_val[crz_fl_as])
 	crz_cm = crz_fl_as;
     }
-
-    m_seng_f -= (float)(m_js.ud2 * (255. / 90));
-    m_seng_f = min((float) 255.0, m_seng_f);
-    m_seng_f = max((float)0.0, m_seng_f);
   }
+  
   if(crz_cm != crz_undef){
     switch(crz_cm){
     case crz_stp:
@@ -1426,7 +1417,6 @@ void f_ui_manager::handle_ctrl_crz()
   m_inst.tcur = get_time();
   m_inst.rud_aws = (unsigned char)m_rud_f;
   m_inst.meng_aws = (unsigned char)m_meng_f;
-  m_inst.seng_aws = (unsigned char)m_seng_f;
 }
 
 void f_ui_manager::handle_ctrl_ctl()
@@ -1441,17 +1431,11 @@ void f_ui_manager::handle_ctrl_ctl()
     m_meng_f = 127.5;
     m_meng_f -= (float)(m_js.ud1 * (127.5));
     m_meng_f = min((float)255.0, m_meng_f);
-    m_meng_f = max((float)0.0, m_meng_f);
-    
-    m_seng_f = 127.5;
-    m_seng_f -= (float)(m_js.ud2 * (127.5));
-    m_seng_f = min((float) 255.0, m_seng_f);
-    m_seng_f = max((float)0.0, m_seng_f);
+    m_meng_f = max((float)0.0, m_meng_f);    
   }
   m_inst.tcur = get_time();
   m_inst.rud_aws = (unsigned char)m_rud_f;
   m_inst.meng_aws = (unsigned char)m_meng_f;
-  m_inst.seng_aws = (unsigned char)m_seng_f;
 }
 
 void f_ui_manager::handle_ctrl_stb()
