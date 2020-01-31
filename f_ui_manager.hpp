@@ -247,7 +247,7 @@ class f_ui_manager: public f_glfw_window
   float sog_max, rev_max;
   float cog_tgt, sog_tgt, rev_tgt;
   
-  float m_rud_f, m_meng_f, m_seng_f;
+  float m_rud_f, m_meng_f;
   void handle_ctrl_crz(); // cruise mode: sticks are used to increase/decrease engine throttle and rudder angle 
   void handle_ctrl_ctl(); // control mode: positions of sticks are the throttle values. 
   void handle_ctrl_csr(); // cursor mode: follows cursor position 
