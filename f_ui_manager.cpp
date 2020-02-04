@@ -1247,30 +1247,11 @@ void f_ui_manager::rcv_ctrl_stat()
   }else 
     return;
   m_stat.ctrl_src = stat.ctrl_src;
-  m_stat.rud_rmc = stat.rud_rmc;
-  m_stat.meng_rmc = stat.meng_rmc;
   m_stat.rud = stat.rud;
   m_stat.meng = stat.meng;
   m_stat.rud_aws = stat.rud_aws;
   m_stat.meng_aws = stat.meng_aws;
- 
-  m_stat.rud_sta = stat.rud_sta;
-  m_stat.rud_sta_out = stat.rud_sta_out;
-  
-  m_stat.rud_max_rmc = stat.rud_max_rmc;
-  m_stat.rud_nut_rmc = stat.rud_nut_rmc;
-  m_stat.rud_min_rmc = stat.rud_min_rmc;
-
-  m_stat.meng_max_rmc = stat.meng_max_rmc;
-  m_stat.meng_nuf_rmc = stat.meng_nuf_rmc;
-  m_stat.meng_nut_rmc = stat.meng_nut_rmc;
-  m_stat.meng_nub_rmc = stat.meng_nub_rmc;
-  m_stat.meng_min_rmc = stat.meng_min_rmc;
-
-  m_stat.rud_sta_max = stat.rud_sta_max;
-  m_stat.rud_sta_nut = stat.rud_sta_nut;
-  m_stat.rud_sta_min = stat.rud_sta_min;
-
+   
   m_stat.meng_max = stat.meng_max;
   m_stat.meng_nuf = stat.meng_nuf;
   m_stat.meng_nut = stat.meng_nut;
@@ -1280,10 +1261,6 @@ void f_ui_manager::rcv_ctrl_stat()
   m_stat.rud_max = stat.rud_max;
   m_stat.rud_nut = stat.rud_nut;
   m_stat.rud_min = stat.rud_min;
-
-  m_stat.rud_sta_out_max = stat.rud_sta_out_max;
-  m_stat.rud_sta_out_nut = stat.rud_sta_out_nut;
-  m_stat.rud_sta_out_min = stat.rud_sta_out_min;
 }
 
 void f_ui_manager::ctrl_cog_tgt()
