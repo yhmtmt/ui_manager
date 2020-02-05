@@ -129,13 +129,13 @@ private:
  
   // for Android wear 
   bool bwear;
-  unsigned short wmeng, wrud, wrev, wsog, wcog, wyaw, wdpt, whbt, whbt0;
+  unsigned short weng, wrud, wrev, wsog, wcog, wyaw, wdpt, whbt, whbt0;
   long long twhbt, twhbt_out;
   void update_wear_params(const float rpm, const float sog, const float cog,
 			  const float yaw, const float depth)
   {
     // for android wear
-    wmeng = (unsigned short) m_stat.meng_aws;
+    weng = (unsigned short) m_stat.eng_aws;
     wrud = (unsigned short) m_stat.rud_aws;
     wrev = (unsigned short) rpm;
     wsog = (unsigned short)(sog * 10);
@@ -159,7 +159,7 @@ private:
     float yawf = (float)(yaw * (PI / 180.f));
     const char *str_steng1 = ((steng1 >= 0 && steng1 <= EmergencyStop) ? strStatEng1[steng1] : NULL);
     const char *str_steng2 = ((steng2 >= 0 && steng2 <= EngineShuttingDown) ? strStatEng2[steng2] : NULL);
-    ind.set_param( m_time_str, m_stat.meng_aws, rpm, rev_tgt, trim, poil,
+    ind.set_param( m_time_str, m_stat.eng_aws, rpm, rev_tgt, trim, poil,
 		   toil, temp, valt, frate, teng, pclnt, pfl, ld, tq,
 		   str_steng1, str_steng2, m_stat.rud_aws,
 		   cogf, (float)(cog_tgt * (PI/180.f)), sog, sog_tgt, yawf,
@@ -247,7 +247,7 @@ private:
   float sog_max, rev_max;
   float cog_tgt, sog_tgt, rev_tgt;
   
-  float m_rud_f, m_meng_f;
+  float m_rud_f, m_eng_f;
   void handle_ctrl_crz(); // cruise mode: sticks are used to increase/decrease engine throttle and rudder angle 
   void handle_ctrl_ctl(); // control mode: positions of sticks are the throttle values. 
   void handle_ctrl_csr(); // cursor mode: follows cursor position 
