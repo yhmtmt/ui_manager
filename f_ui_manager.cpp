@@ -88,7 +88,6 @@ f_ui_manager::f_ui_manager(const char * name) :
   bmap_center_free(false), btn_pushed(ebtn_nul), btn_released(ebtn_nul),
   ctrl_mode(cm_crz), crz_cm(crz_undef), stb_cm(stb_undef), stb_cog_tgt(FLT_MAX),
   m_rud_f(127.), m_eng_f(127.),
-  bwear(false), twhbt_out(5 * SEC), twhbt(0), whbt0(USHRT_MAX), whbt(0),
   cog_tgt(0.f), sog_tgt(3.0f), rev_tgt(700),  sog_max(23),  rev_max(5600)
 {
   m_path_storage[0] = '.';m_path_storage[1] = '\0';
@@ -182,17 +181,6 @@ f_ui_manager::f_ui_manager(const char * name) :
   stb_cmd_val[stb_hf_as] =  -1500;
   stb_cmd_val[stb_fl_as] = -2000;
   
-  register_fpar("wear", &bwear, "Enable Android Wear control");
-  register_fpar("weng", &weng, "Main engine value accessed from Android Wear.");
-  register_fpar("wrud", &wrud, "Rudder value accessed from Android Wear");
-  register_fpar("wrev", &wrev, "Engine rev accessed from Android Wear");
-  register_fpar("wsog", &wsog, "Speed over ground accessed from Android Wear");
-  register_fpar("wcog", &wcog, "Course over ground accessed from Android Wear");
-  register_fpar("wyaw", &wyaw, "Yaw accessed from Android Wear");
-  register_fpar("wdpt", &wdpt, "Depth accessed from Android Wear");
-  register_fpar("whbt", &whbt, "Heartbeat value sat from Android wear");
-  register_fpar("twhbt_out", &twhbt_out, "Android wear heartbeat timeout.");
-
   register_fpar("sog_max", &sog_max, "Maximum allowed SOG in kts");
   register_fpar("rev_max", &rev_max, "Maximum allowed REV in rpm");
   register_fpar("sog_tgt", &sog_tgt, "Target SOG in kts");
@@ -436,15 +424,7 @@ bool f_ui_manager::init_run()
     }
   btn_lock_map_own_ship.set_invisible();
   btn_lock_map_own_ship.set_text("LOCK");
-  
-  pos.x -= sz.x;
-  if (!btn_wear_dev_ctrl.init(pos, sz, 5, clr, clrb))
-    {
-      return false;
-    }
-  btn_wear_dev_ctrl.set_visible();
-  btn_wear_dev_ctrl.set_text("WEAR");
-  
+   
   pos.x -= sz.x;
   if (!btn_js_ctrl.init(pos, sz, 5, clr, clrb))
     {
@@ -771,10 +751,6 @@ f_ui_manager::e_button f_ui_manager::get_col_button()
   else if (btn_lock_cam_dir_hdg.collision(pt_mouse)) {
     return ebtn_lock_cam_dir_hdg;
   }
-  else if (btn_wear_dev_ctrl.collision(pt_mouse))
-    {
-      return ebtn_wear_dev_ctrl;
-    }
   else if (btn_js_ctrl.collision(pt_mouse))
     {
       return ebtn_js_ctrl;
@@ -877,20 +853,12 @@ void f_ui_manager::update_button(c_view_mode_box * pvm_box)
     case ebtn_lock_map_own_ship:
       bmap_center_free = false;
       break;
-    case ebtn_wear_dev_ctrl:
-      bwear = !bwear;
-      break;
     case ebtn_js_ctrl:
       bjs = !bjs;
       break;
     }
     btn_pushed = btn_released = ebtn_nul;
   }
-
-  if (bwear)
-    btn_wear_dev_ctrl.set_check();
-  else
-    btn_wear_dev_ctrl.set_normal();
 
   if (bjs) 
     btn_js_ctrl.set_check();
@@ -1045,17 +1013,6 @@ bool f_ui_manager::proc()
 
   js_force_ctrl_stop(pcm_box);
 
-  if (bwear) {
-    if (whbt0 != whbt) {
-      twhbt = get_time();
-      whbt0 = whbt;
-    }
-    if (twhbt + twhbt_out < get_time()) {
-      cout << "Wear device is not alive" << endl;
-      ui_force_ctrl_stop(pcm_box);
-    }
-  }
-
   switch (ctrl_mode){
   case cm_crz:
     handle_ctrl_crz();
@@ -1121,10 +1078,7 @@ bool f_ui_manager::proc()
 		   rpm, trim, poil, toil, temp, valt,
 		   frate, teng, pclnt, pfl, ld,
 		   tq, steng1, steng2, depth);
-
-  // updating wear indicator params
-  update_wear_params(rpm, sog, cog, yaw, depth);
-  
+ 
   // update route object
   update_route(prc_box);
   
@@ -1906,7 +1860,7 @@ void f_ui_manager::update_route_cfg_box(c_route_cfg_box * prc_box, e_mouse_state
 }
 
 void f_ui_manager::update_ui_params(c_view_mode_box * pvm_box,
-				    const float xown, const float yown, const float zown,
+				    const double xown, const double yown, const double zown,
 				    const float vx, const float vy, const float yaw)
 {
   {
@@ -1940,7 +1894,9 @@ void f_ui_manager::update_ui_params(c_view_mode_box * pvm_box,
     
     double rx, ry, rz;
     float rxs, rys, rzs, d, dir;
-    eceftowrld(Rmap, pt_map_center_ecef.x, pt_map_center_ecef.y, pt_map_center_ecef.z, xown, yown, zown, rx, ry, rz);
+    eceftowrld(Rmap, pt_map_center_ecef.x,
+	       pt_map_center_ecef.y, pt_map_center_ecef.z,
+	       xown, yown, zown, rx, ry, rz);
     if(m_ch_ap_inst->get_mode() == EAP_STAY){
       m_ch_ap_inst->get_stay_pos_rel(rxs, rys, d, dir);
       rzs = 0;
@@ -1960,6 +1916,29 @@ void f_ui_manager::update_ui_params(c_view_mode_box * pvm_box,
     pvm = pm * vm;
   }
   pvm *= mm;
+}
+
+void f_ui_manager::update_indicator(const float cog, const float sog, 
+			const float roll, const float pitch, const float yaw,
+			const float rpm, const float trim, const int poil,
+			const float toil, const float temp, const float valt,
+			const float frate, const unsigned int teng,
+			const int pclnt, const int pfl, const unsigned char ld,
+			const unsigned char tq, const StatEng1 steng1,
+			const StatEng2 steng2, const float depth)
+{
+  float cogf = (float)(cog * (PI / 180.f));
+  float yawf = (float)(yaw * (PI / 180.f));
+  const char *str_steng1 = ((steng1 >= 0 && steng1 <= EmergencyStop) ? strStatEng1[steng1] : NULL);
+  const char *str_steng2 = ((steng2 >= 0 && steng2 <= EngineShuttingDown) ? strStatEng2[steng2] : NULL);
+  ind.set_param( m_time_str, m_stat.eng_aws, rpm, rev_tgt, trim, poil,
+		 toil, temp, valt, frate, teng, pclnt, pfl, ld, tq,
+		 str_steng1, str_steng2, m_stat.rud_aws,
+		 cogf, (float)(cog_tgt * (PI/180.f)), sog, sog_tgt, yawf,
+		 (float)(pitch* (PI / 180.f)), (float)(-roll* (PI / 180.f)),
+		 depth);
+    
+  ind.set_dir_cam(dir_cam_hdg + dir_cam_hdg_drag);
 }
 
 void f_ui_manager::_cursor_position_callback(double xpos, double ypos){
