@@ -124,8 +124,10 @@ private:
   void cnv_img_to_view(cv::Mat & img, float av, cv::Size & sz,
 		       bool flipx, bool flipy);
 
-  int hmap_mask[2];
-  bool init_map_mask();
+  int hmap_mask[2];     // 2-d black polygon handles related to omap_mask
+                        // placed around map.
+  // calculating vertices of mask polygons around map region.
+  bool init_map_mask(); 
   
   void render_gl_objs(c_view_mode_box * pvm_box); // renders all elements above declared.
 
@@ -251,18 +253,23 @@ private:
   void ctrl_cog_tgt();
   void ctrl_sog_tgt();
   void ctrl_rev_tgt();
-  ///////////////////////////////////////////////// joypad handlers (used for manual control)
+  /////////////////////////////////// joypad handlers (used for manual control)
   s_jc_u3613m m_js; // joystick wrapper. (Now i only support jc_u3613) 
   bool bjs;	    // joystick control enable flag
                     // (switched from fset, touch panel, and js's start button)
   int m_js_id;	    // joystick id (glfw's ordering)
   const char * m_js_name; // joystick name (glfw's naming)
 
-  // mouse related members
-  glm::dvec2 pt_mouse, pt_mouse_drag_begin, pt_mouse_blh;
-  glm::dvec3 pt_mouse_ecef, pt_mouse_enu;
-  int mouse_button, mouse_action, mouse_mods;
-  s_obj obj_mouse_on;
+  /////////////////////////////////////////////////////// mouse related members
+  glm::dvec2 pt_mouse;     // Mouse 2-D position in viewport in pixel.
+  glm::dvec2 pt_mouse_blh; // Mouse 2-D position in the world(Porlar).
+  glm::dvec3 pt_mouse_ecef;// Mouse 3-D position in the world(ECEF).
+  glm::dvec3 pt_mouse_enu; // Mouse 3-D position in the world(ENU).
+  glm::dvec2 pt_mouse_drag_begin;
+  int mouse_button;   // left or right
+  int mouse_action;   // click, release .. etc
+  int mouse_mods;     // ctrl, alt ..etc
+  s_obj obj_mouse_on; // object mouse pointing on.
 
   // calc_mouse_enu_and_ecef_pos calculates global position the mouse
   // pointer is pointing on. 
@@ -291,6 +298,7 @@ private:
 		       c_map_cfg_box * pmc_box,
 		       c_route_cfg_box * prc_box);
   void handle_mouse_drag(c_view_mode_box * pvm_box, s_obj & obj_tmp);
+  
   void clear_mouse_event()
   {
     mouse_button = -1;

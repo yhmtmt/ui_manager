@@ -998,7 +998,7 @@ bool f_ui_manager::proc()
   if(stb_cm != stb_undef){
     // force stb mode
     ctrl_mode = cm_stb;
-    m_inst.ctrl_src = ACS_AP1;
+    m_inst.ctrl_src = ACS_AP;
     m_ch_ap_inst->set_mode(EAP_STB_MAN);
   }
     
@@ -1684,7 +1684,7 @@ void f_ui_manager::update_ctrl_mode_box(c_ctrl_mode_box * pcm_box)
       ctrl_mode = cm_crz;
       break;
     case c_ctrl_mode_box::csr:
-      m_inst.ctrl_src = ACS_AP1;
+      m_inst.ctrl_src = ACS_AP;
       ctrl_mode = cm_csr;
       m_ch_ap_inst->set_mode(EAP_CURSOR);
       break;
@@ -1693,7 +1693,7 @@ void f_ui_manager::update_ctrl_mode_box(c_ctrl_mode_box * pcm_box)
       ctrl_mode = cm_ctl;
       break;
     case c_ctrl_mode_box::sty:
-      m_inst.ctrl_src = ACS_AP1;
+      m_inst.ctrl_src = ACS_AP;
       m_ch_ap_inst->set_mode(EAP_STAY);
       {
 	long long t; 
@@ -1704,17 +1704,17 @@ void f_ui_manager::update_ctrl_mode_box(c_ctrl_mode_box * pcm_box)
       ctrl_mode = cm_ap;
       break;
     case c_ctrl_mode_box::fwp:
-      m_inst.ctrl_src = ACS_AP1;
+      m_inst.ctrl_src = ACS_AP;
       m_ch_ap_inst->set_mode(EAP_WP);
       ctrl_mode = cm_ap;
       break;
     case c_ctrl_mode_box::ftg:
-      m_inst.ctrl_src = ACS_AP1;
+      m_inst.ctrl_src = ACS_AP;
       m_ch_ap_inst->set_mode(EAP_FLW_TGT);
       ctrl_mode = cm_ap;
       break;
     case c_ctrl_mode_box::stb:
-      m_inst.ctrl_src = ACS_AP1;
+      m_inst.ctrl_src = ACS_AP;
       m_ch_ap_inst->set_mode(EAP_STB_MAN);
       ctrl_mode = cm_stb;
     }
