@@ -947,8 +947,8 @@ bool f_ui_manager::proc()
     yaw += 360.f;
   yaw = min(max(-180.f, yaw), 180.f);
   
-  m_state->get_velocity(t, cog, sog);
-  m_state->get_velocity_vector(t, vx, vy);
+  m_state->get_corrected_velocity(t, cog, sog);
+  m_state->get_corrected_velocity_vector(t, vx, vy);
   m_state->get_position_ecef(t, xown, yown, zown);
   
   double lat, lon;
