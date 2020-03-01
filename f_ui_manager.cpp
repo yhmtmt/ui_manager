@@ -273,6 +273,8 @@ bool f_ui_manager::init_run()
       cerr << "State channel is not connected." << endl;
       return false;
     }
+
+  m_state->set_gps_ant_pos(Eigen::Vector3d(0, 0, -1.));
   
   if (!m_ch_ctrl_inst)
     {
