@@ -7,7 +7,7 @@ find_package(glfw3 REQUIRED)
 
 file(GLOB UTILS ${CMAKE_CURRENT_SOURCE_DIR}/util/*.cpp)
 file(GLOB RES ${CMAKE_CURRENT_SOURCE_DIR}/res/*)
-add_library(ui_manager SHARED f_ui_manager.cpp f_glfw_window.cpp ${CHANS} ${UTILS})
+add_library(ui_manager SHARED f_ui_manager.cpp f_glfw_window.cpp ui_command.cpp ${CHANS} ${UTILS})
 
 target_include_directories(ui_manager PUBLIC ${PROJECT_SOURCE_DIR}/include)
 target_include_directories(ui_manager PUBLIC ${PROJECT_SOURCE_DIR}/channels)

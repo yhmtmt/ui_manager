@@ -17,62 +17,7 @@
 
 DEFINE_FILTER(f_ui_manager);
 
-const char * f_ui_manager::str_ctrl_mode[cm_undef] =
-  {
-    "crz", "ctl", "csr", "ap", "stb"
-  };
 
-const char * f_ui_manager::str_crz_cmd[crz_undef] =
-  {
-    "stp",
-    "dsah", "slah", "hfah", "flah", "nf",
-    "dsas", "slas", "hfas", "flas",
-    "mds",
-    "p10", "p20", "hap",
-    "s10", "s20", "has"
-  };
-
-const char * f_ui_manager::str_crz_cmd_exp[crz_undef] =
-  {
-    "Clutch to Neutral.",
-    "Clutch to Forward, Throttle to Dead Slow",
-    "Clutch to Forward, Throttle to Slow",
-    "Clutch to Forward, Throttle to Half",
-    "Clutch to Forward, Throttle to Full",
-    "Clutch to Forward, Throttle to Navigation Full",
-    "Clutch to Backward, Throttle to Dead Slow",
-    "Clutch to Backward, Throttle to Slow",
-    "Clutch to Backward, Throttle to Half",
-    "Clutch to Backward, Throttle to Full",
-    "Steer to Amidship",
-    "Steer to Port 10",
-    "Steer to Port 20",
-    "Steer to Hard a Port",
-    "Steer to Starboard 10",
-    "Steer to Starboard 20",
-    "Steer to Hard a Starboard"    
-  };
-
-const char * f_ui_manager::str_stb_cmd[stb_undef] =
-  {
-    "stp",
-    "dsah", "slah", "hfah", "flah", "nf",
-    "dsas", "slas", "hfas", "flas"
-  };
-
-const char * f_ui_manager::str_stb_cmd_exp[stb_undef] =
-  {
-    "Clutch to Neutral.",
-    "Clutch to Forward, Throttle to Dead Slow",
-    "Clutch to Forward, Throttle to Slow",
-    "Clutch to Forward, Throttle to Half",
-    "Clutch to Forward, Throttle to Full",
-    "Clutch to Forward, Throttle to Navigation Full",
-    "Clutch to Backward, Throttle to Dead Slow",
-    "Clutch to Backward, Throttle to Slow",
-    "Clutch to Backward, Throttle to Half",
-    "Clutch to Backward, Throttle to Full",
-  };
 
 f_ui_manager::f_ui_manager(const char * name) :
   f_glfw_window(name),
@@ -86,7 +31,7 @@ f_ui_manager::f_ui_manager(const char * name) :
   bupdate_map(true), pt_prev_map_update(0, 0, 0),
   map_range(4000), map_range_base(1000),  sz_mark(10.0f), mouse_state(ms_normal),
   bmap_center_free(false), btn_pushed(ebtn_nul), btn_released(ebtn_nul),
-  ctrl_mode(cm_crz), crz_cm(crz_undef), stb_cm(stb_undef), stb_cog_tgt(FLT_MAX),
+  ctrl_mode(cm_crz), stb_cog_tgt(FLT_MAX),
   m_rud_f(127.), m_eng_f(127.),
   cog_tgt(0.f), sog_tgt(3.0f), rev_tgt(700),  sog_max(23),  rev_max(5600)
 {
@@ -114,7 +59,6 @@ f_ui_manager::f_ui_manager(const char * name) :
 
   register_fpar("storage", m_path_storage, 1024, "Path to the storage device");
 
-  register_fpar("acs", (int*) &m_stat.ctrl_src, (int) ACS_NONE, str_aws1_ctrl_src, "Control source.");
   register_fpar("eng", &m_eng_f, "Main engine instruction value");
   register_fpar("rud", &m_rud_f, "Rudder instruction value");
 
@@ -139,54 +83,76 @@ f_ui_manager::f_ui_manager(const char * name) :
   register_fpar("ss", &m_bss, "Screen shot now.");
   register_fpar("svw", &m_bsvw, "Screen video write.");
 
-  // for cruise command
-  for(int icrz_cmd = 0; icrz_cmd < (int)crz_undef; icrz_cmd++){
-    crz_cmd_val[icrz_cmd] = 127;
-    register_fpar(str_crz_cmd[icrz_cmd], crz_cmd_val+icrz_cmd, str_crz_cmd_exp[icrz_cmd]);
-  }
-  register_fpar("crz", (int*)&crz_cm, (int)crz_undef, str_crz_cmd, "Command for CRZ mode.");
-  register_fpar("stb", (int*)&stb_cm, (int)stb_undef, str_stb_cmd, "Engine command for STB mode.");
-  register_fpar("stb_cog_tgt", &stb_cog_tgt, "Target cog for STB mode");
-  
   // for aws1  
-  crz_cmd_val[crz_stp] = 127;   // neutral
-  crz_cmd_val[crz_ds_ah] = 152; // 700rpm
-  crz_cmd_val[crz_sl_ah] = 200; //1000rpm
-  crz_cmd_val[crz_hf_ah] = 210; //2500rpm
-  crz_cmd_val[crz_fl_ah] = 220; //4500rpm
-  crz_cmd_val[crz_nf] = 225;    //5200rpm
+  eng_cmd_val[eng_stp] = 127;   // neutral
+  eng_cmd_val[eng_ds_ah] = 152; // 700rpm
+  eng_cmd_val[eng_sl_ah] = 200; //1000rpm
+  eng_cmd_val[eng_hf_ah] = 210; //2500rpm
+  eng_cmd_val[eng_fl_ah] = 220; //4500rpm
+  eng_cmd_val[eng_nf] = 225;    //5200rpm
   
-  crz_cmd_val[crz_ds_as] =102; 
-  crz_cmd_val[crz_sl_as] = 53;
-  crz_cmd_val[crz_hf_as] = 43;
-  crz_cmd_val[crz_fl_as] = 33;
+  eng_cmd_val[eng_ds_as] =102; 
+  eng_cmd_val[eng_sl_as] = 53;
+  eng_cmd_val[eng_hf_as] = 43;
+  eng_cmd_val[eng_fl_as] = 33;
 
-  crz_cmd_val[crz_mds] = 127;
-  crz_cmd_val[crz_s10] = 140;
-  crz_cmd_val[crz_s20] = 180;
-  crz_cmd_val[crz_has] = 255;
-  crz_cmd_val[crz_p10] = 87;
-  crz_cmd_val[crz_p20] = 47;
-  crz_cmd_val[crz_hap] = 0;
+  rud_cmd_val[rud_mds] = 127;
+  rud_cmd_val[rud_s10] = 140;
+  rud_cmd_val[rud_s20] = 180;
+  rud_cmd_val[rud_has] = 255;
+  rud_cmd_val[rud_p10] = 87;
+  rud_cmd_val[rud_p20] = 47;
+  rud_cmd_val[rud_hap] = 0;
 
   
-  stb_cmd_val[stb_stp] = 0; 
-  stb_cmd_val[stb_ds_ah] = 700;
-  stb_cmd_val[stb_sl_ah] = 1200;
-  stb_cmd_val[stb_hf_ah] = 2500;
-  stb_cmd_val[stb_fl_ah] = 4000;
-  stb_cmd_val[stb_nf] = 5500;  
-  stb_cmd_val[stb_ds_as] =-700; 
-  stb_cmd_val[stb_sl_as] = -1000;
-  stb_cmd_val[stb_hf_as] =  -1500;
-  stb_cmd_val[stb_fl_as] = -2000;
+  rev_cmd_val[rev_stp] = 0; 
+  rev_cmd_val[rev_ds_ah] = 700;
+  rev_cmd_val[rev_sl_ah] = 1200;
+  rev_cmd_val[rev_hf_ah] = 2500;
+  rev_cmd_val[rev_fl_ah] = 4000;
+  rev_cmd_val[rev_nf] = 5500;  
+  rev_cmd_val[rev_ds_as] =-700; 
+  rev_cmd_val[rev_sl_as] = -1000;
+  rev_cmd_val[rev_hf_as] =  -1500;
+  rev_cmd_val[rev_fl_as] = -2000;
+  
+  cog_cmd_val[cog_p5] = -5;
+  cog_cmd_val[cog_p10] = -10;
+  cog_cmd_val[cog_p20] = -20;
+  cog_cmd_val[cog_s5] = 5;
+  cog_cmd_val[cog_s10] = 10;
+  cog_cmd_val[cog_s20] = 20;
+
+  sog_cmd_val[sog_stp] = 0; 
+  sog_cmd_val[sog_ds_ah] = 2;
+  sog_cmd_val[sog_sl_ah] = 5;
+  sog_cmd_val[sog_hf_ah] = 10;
+  sog_cmd_val[sog_fl_ah] = 15;
+  sog_cmd_val[sog_nf] = 20;  
+  sog_cmd_val[sog_ds_as] = -2; 
+  sog_cmd_val[sog_sl_as] = -4;
+  sog_cmd_val[sog_hf_as] = -6;
+  sog_cmd_val[sog_fl_as] = -8;
   
   register_fpar("sog_max", &sog_max, "Maximum allowed SOG in kts");
   register_fpar("rev_max", &rev_max, "Maximum allowed REV in rpm");
   register_fpar("sog_tgt", &sog_tgt, "Target SOG in kts");
   register_fpar("rev_tgt", &rev_tgt, "Target REV in rpm");
   register_fpar("cog_tgt", &cog_tgt, "Target COG in degree");
+
+  register_fpar("cmd_id", (int*)(&cmd.id), (int)UC_NULL, str_ui_command, "Command id");
+  register_fpar("ival0", &cmd.ival0, "Integer command argument 0 (64bit)");
+  register_fpar("ival1", &cmd.ival1, "Integer command argument 1 (64bit)");
+  register_fpar("ival2", &cmd.ival2, "Integer command argument 2 (64bit)");
+  register_fpar("ival3", &cmd.ival3, "Integer command argument 3 (64bit)");
+  register_fpar("fval0", &cmd.fval0, "Float command argument 0 (64bit)");
+  register_fpar("fval1", &cmd.fval1, "Float command argument 1 (64bit)");
+  register_fpar("fval2", &cmd.fval2, "Float command argument 2 (64bit)");
+  register_fpar("fval3", &cmd.fval3, "Float command argument 3 (64bit)");
+  register_fpar("path_quit_script", path_quit_script, 1024, "Path to the quit script.");
+  register_fpar("quit_script", quit_script, 1024, "File name of the quit script");
 }
+
 
 
 f_ui_manager::~f_ui_manager()
@@ -933,21 +899,176 @@ void f_ui_manager::render_gl_objs(c_view_mode_box * pvm_box)
   glfwSwapBuffers(pwin());	
 }
 
+void f_ui_manager::handle_quit()
+{
+  char cmd[2048];
+  chdir(path_quit_script);
+  snprintf(cmd, 2048, "bash ./%s &", quit_script);
+  system(cmd);
+}
+
+void f_ui_manager::handle_set_ctrl_mode()
+{
+  if(cmd.ival0 >= ACS_NONE ||  cmd.ival0 < 0){
+    return;    
+  }
+
+  if(cmd.ival0 == ACS_AP){
+    if(cmd.ival1 >= EAP_NONE || cmd.ival1 < 0)
+      return;
+    else
+      m_ch_ap_inst->set_mode((e_ap_mode)cmd.ival1);    
+  }
+
+  m_inst.ctrl_src = (e_aws1_ctrl_src) cmd.ival0;
+}
+
+void f_ui_manager::handle_set_ctrl_value()
+{
+    switch(m_inst.ctrl_src){
+  case ACS_UI: // fval0,fval1-> m_eng_f,m_rud_f
+    if(cmd.fval0 >= 0 && cmd.fval0 <= 255)
+      m_eng_f = cmd.fval0;
+    if(cmd.fval1 >= 0 && cmd.fval1 <= 255)
+      m_rud_f = cmd.fval1;
+    break;
+  case ACS_AP: // fval0,fval1-> rev_tgt or sog_tgt,cog_tgt
+    if(m_ch_ap_inst->get_mode() == EAP_STB_MAN){
+      if(cmd.fval0 >= -rev_max && cmd.fval0 <= rev_max)
+	rev_tgt = cmd.fval0;
+    }else{
+      if(cmd.fval0 >= 0 && cmd.fval0 <= sog_max)
+	sog_tgt = cmd.fval0;
+    }
+    if(cmd.fval1 >= 0 && cmd.fval1 <= 360)
+      cog_tgt = cmd.fval1;
+  }
+}
+
+void f_ui_manager::handle_set_ctrl_command()
+{
+  switch(m_inst.ctrl_src){
+  case ACS_UI: // fval0,fval1-> m_eng_f,m_rud_f
+    if(cmd.ival0 >= 0 && cmd.ival0 < eng_undef)
+      m_eng_f = eng_cmd_val[cmd.ival0];
+    else if(cmd.ival0 < rud_undef)
+      m_rud_f = rud_cmd_val[cmd.ival0];
+    break;
+  case ACS_AP: // fval0,fval1-> rev_tgt or sog_tgt,cog_tgt
+    if(m_ch_ap_inst->get_mode() == EAP_STB_MAN){
+      if(cmd.ival0 >= 0 && cmd.ival0 < rev_undef)
+	rev_tgt = rev_cmd_val[cmd.ival0];
+    }else{
+      if(cmd.ival0 >= 0 && cmd.ival0 < sog_undef)
+	sog_tgt = sog_cmd_val[cmd.ival0];
+    }
+    if(cmd.fval1 >= 0 && cmd.fval1 < cog_undef){
+      cog_tgt += cog_cmd_val[cmd.ival1];
+      if(cog_tgt > 360)
+	cog_tgt -= 360.;
+      if(cog_tgt < 0)
+	cog_tgt += 360.;      
+    }
+  }
+}
+
+  void f_ui_manager::handle_radar_on(){}
+  void f_ui_manager::handle_radar_off(){}
+  void f_ui_manager::handle_set_radar_range(){}
+  void f_ui_manager::handle_set_radar_gain(){}
+  void f_ui_manager::handle_set_radar_sea(){}
+  void f_ui_manager::handle_set_radar_rain(){}
+  void f_ui_manager::handle_set_radar_interference(){}
+  void f_ui_manager::handle_set_radar_speed(){}
+  void f_ui_manager::handle_add_waypoint(){}
+  void f_ui_manager::handle_del_waypoint(){}
+  void f_ui_manager::handle_load_waypoints(){}
+  void f_ui_manager::handle_reverse_waypoints(){}
+  void f_ui_manager::handle_refresh_waypoints(){}
+  void f_ui_manager::handle_set_map_range(){}
+  void f_ui_manager::handle_set_map_center(){}
+  void f_ui_manager::handle_set_map_obj(){}
+
+
+void f_ui_manager::command_handler()
+{
+  switch(cmd.id){
+  case UC_NULL:
+    return;
+  case UC_QUIT:
+    handle_quit();
+    break;
+  case UC_SETCTRLMODE:
+    handle_set_ctrl_mode();
+    break;
+  case UC_SETCTRLV:
+    handle_set_ctrl_value();
+    break;
+  case UC_SETCTRLC:
+    handle_set_ctrl_command();
+    break;
+  case UC_RDON:
+    handle_radar_on();
+    break;
+  case UC_RDOFF:
+    handle_radar_off();
+    break;
+  case UC_SETRDRANGE:
+    handle_set_radar_range();
+    break;
+  case UC_SETRDGAIN:
+    handle_set_radar_gain();
+    break;
+  case UC_SETRDSEA:
+    handle_set_radar_sea();
+    break;
+  case UC_SETRDRAIN:
+    handle_set_radar_rain();
+    break;
+  case UC_SETRDIFR:
+    handle_set_radar_interference();
+    break;
+  case UC_SETSPD:
+    handle_set_radar_speed();
+    break;
+  case UC_ADDWP:
+    handle_add_waypoint();
+    break;
+  case UC_DELWP:
+    handle_del_waypoint();
+    break;
+  case UC_REVWPS:
+    handle_reverse_waypoints();
+    break;
+  case UC_REFWPS:
+    handle_refresh_waypoints();
+    break;
+  case UC_SETMAPRANGE:
+    handle_set_map_range();
+    break;
+  case UC_SETMAPCENTER:
+    handle_set_map_center();
+    break;
+  case UC_SETMAPOBJ:
+    handle_set_map_obj();
+    break;
+  }
+  cmd.id = UC_NULL;
+}
+
 bool f_ui_manager::proc()
 {
+  command_handler();
+
   // loading states
   long long t = 0;
   float roll, pitch, yaw, cog, sog, vx, vy;
   double xown, yown, zown;
   m_state->get_attitude(t, roll, pitch, yaw);
 
-  roll = min(max(-180.f, roll),180.f);
-  pitch = min(max(-180.f, pitch), 180.f);
-  if(yaw > 180.f)
-    yaw -= 360.f;
-  if(yaw < -180.f)
-    yaw += 360.f;
-  yaw = min(max(-180.f, yaw), 180.f);
+  roll = normalize_angle_deg(roll);
+  pitch = normalize_angle_deg(pitch);
+  yaw = normalize_angle_deg(yaw);
   
   m_state->get_corrected_velocity(t, cog, sog);
   m_state->get_corrected_velocity_vector(t, vx, vy);
@@ -989,20 +1110,6 @@ bool f_ui_manager::proc()
     dynamic_cast<c_map_cfg_box*>(uim.get_ui_box(c_aws_ui_box_manager::map_cfg));
   c_route_cfg_box * prc_box =
     dynamic_cast<c_route_cfg_box*>(uim.get_ui_box(c_aws_ui_box_manager::route_cfg));
-
-  if(crz_cm != crz_undef){
-    // force CRZ mode
-    ctrl_mode = cm_crz;
-    m_inst.ctrl_src = ACS_UI;
-    pcm_box->set_mode(c_ctrl_mode_box::crz);    
-  }
-
-  if(stb_cm != stb_undef){
-    // force stb mode
-    ctrl_mode = cm_stb;
-    m_inst.ctrl_src = ACS_AP;
-    m_ch_ap_inst->set_mode(EAP_STB_MAN);
-  }
     
   // process joypad inputs
   if(m_js.id != -1){
@@ -1041,9 +1148,9 @@ bool f_ui_manager::proc()
   
   if(ctrl_mode != cm_stb){
     cog_tgt = cog;
-    if(crz_ds_ah <= m_stat.eng_aws) // ahead
+    if(eng_cmd_val[eng_ds_ah] <= m_stat.eng_aws) // ahead
       rev_tgt = rpm;
-    else if (crz_ds_as >=  m_stat.eng_aws) //astern
+    else if (eng_cmd_val[eng_ds_as] >=  m_stat.eng_aws) //astern
       rev_tgt = -rpm;
   }
 
@@ -1221,10 +1328,7 @@ void f_ui_manager::rcv_ctrl_stat()
 
 void f_ui_manager::ctrl_cog_tgt()
 {
-  if(stb_cog_tgt != FLT_MAX){
-    cog_tgt = stb_cog_tgt;
-    stb_cog_tgt = FLT_MAX;
-  }else if (m_js.id != -1 && bjs){
+  if (m_js.id != -1 && bjs){
     cog_tgt += (float)(m_js.lr2 * (255. / 90.));
     cog_tgt = (float)(cog_tgt < 0 ? cog_tgt + 360.0 : (cog_tgt >= 360.0 ? cog_tgt - 360.0 : cog_tgt));
   }
@@ -1240,10 +1344,7 @@ void f_ui_manager::ctrl_sog_tgt()
 
 void f_ui_manager::ctrl_rev_tgt()
 {
-  if(stb_cm != stb_undef){
-    rev_tgt = stb_cmd_val[stb_cm];    
-    stb_cm = stb_undef;
-  }else if (m_js.id != -1 && bjs){
+  if (m_js.id != -1 && bjs){
     rev_tgt -= (float)( m_js.ud1 * (rev_max / 90.));
     rev_tgt = (float) max(min(rev_tgt, rev_max), -rev_max);
   }
@@ -1264,87 +1365,80 @@ void f_ui_manager::handle_ctrl_crz()
     m_rud_f += (float)(m_js.lr2 * (255. / 90.));
     m_rud_f = min((float)255.0, m_rud_f);
     m_rud_f = max((float)0.0, m_rud_f);
-    if(m_eng_f >= crz_cmd_val[crz_ds_ah]){
+    if(m_eng_f >= eng_cmd_val[eng_ds_ah]){
       m_eng_f -= (float)(m_js.ud1 * (255. / 90));
     }
-    if(m_eng_f <= crz_cmd_val[crz_ds_as]){
+    if(m_eng_f <= eng_cmd_val[eng_ds_as]){
       m_eng_f += (float)(m_js.ud1 * (255. / 90));
     }
     m_eng_f = min((float)255.0, m_eng_f);
     m_eng_f = max((float)0.0, m_eng_f);
 
+    e_eng_cmd eng_cm = eng_undef;
+    e_rud_cmd rud_cm = rud_undef;
     if (m_js.eux & s_jc_u3613m::EB_EVUP) {
-      if(m_eng_f < crz_cmd_val[crz_fl_as])
-	crz_cm = crz_fl_as;
-      else if(m_eng_f < crz_cmd_val[crz_hf_as])
-	crz_cm = crz_hf_as;
-      else if(m_eng_f < crz_cmd_val[crz_sl_as])
-	crz_cm = crz_sl_as;
-      else if(m_eng_f < crz_cmd_val[crz_ds_as])
-	crz_cm = crz_ds_as;
-      else if (m_eng_f < crz_cmd_val[crz_stp])
-	crz_cm = crz_stp;
-      else if (m_eng_f < crz_cmd_val[crz_ds_ah])
-	crz_cm = crz_ds_ah;
-      else if (m_eng_f < crz_cmd_val[crz_sl_ah])
-	crz_cm = crz_sl_ah;
-      else if (m_eng_f < crz_cmd_val[crz_hf_ah])
-	crz_cm = crz_hf_ah;
-      else if (m_eng_f < crz_cmd_val[crz_fl_ah])
-	crz_cm = crz_fl_ah;
-      else if (m_eng_f < crz_cmd_val[crz_nf])
-	crz_cm = crz_nf;
+      if(m_eng_f < eng_cmd_val[eng_fl_as])
+	eng_cm = eng_fl_as;
+      else if(m_eng_f < eng_cmd_val[eng_hf_as])
+	eng_cm = eng_hf_as;
+      else if(m_eng_f < eng_cmd_val[eng_sl_as])
+	eng_cm = eng_sl_as;
+      else if(m_eng_f < eng_cmd_val[eng_ds_as])
+	eng_cm = eng_ds_as;
+      else if (m_eng_f < eng_cmd_val[eng_stp])
+	eng_cm = eng_stp;
+      else if (m_eng_f < eng_cmd_val[eng_ds_ah])
+	eng_cm = eng_ds_ah;
+      else if (m_eng_f < eng_cmd_val[eng_sl_ah])
+	eng_cm = eng_sl_ah;
+      else if (m_eng_f < eng_cmd_val[eng_hf_ah])
+	eng_cm = eng_hf_ah;
+      else if (m_eng_f < eng_cmd_val[eng_fl_ah])
+	eng_cm = eng_fl_ah;
+      else if (m_eng_f < eng_cmd_val[eng_nf])
+	eng_cm = eng_nf;
     }
     
     if (m_js.edx & s_jc_u3613m::EB_EVUP) {
-      if (m_eng_f > crz_cmd_val[crz_nf])
-	crz_cm = crz_nf;
-      else if (m_eng_f > crz_cmd_val[crz_fl_ah])
-	crz_cm = crz_fl_ah;
-      else if (m_eng_f > crz_cmd_val[crz_hf_ah])
-	crz_cm = crz_hf_ah;
-      else if (m_eng_f > crz_cmd_val[crz_sl_ah])
-	crz_cm = crz_sl_ah;
-      else if (m_eng_f > crz_cmd_val[crz_ds_ah])
-	crz_cm = crz_ds_ah;
-      else if (m_eng_f > crz_cmd_val[crz_stp])
-	crz_cm = crz_stp;
-      else if (m_eng_f > crz_cmd_val[crz_ds_as])
-	crz_cm = crz_ds_as;
-      else if (m_eng_f > crz_cmd_val[crz_sl_as])
-	crz_cm = crz_sl_as;
-      else if (m_eng_f > crz_cmd_val[crz_hf_as])
-	crz_cm = crz_hf_as;
-      else if (m_eng_f > crz_cmd_val[crz_fl_as])
-	crz_cm = crz_fl_as;
+      if (m_eng_f > eng_cmd_val[eng_nf])
+	eng_cm = eng_nf;
+      else if (m_eng_f > eng_cmd_val[eng_fl_ah])
+	eng_cm = eng_fl_ah;
+      else if (m_eng_f > eng_cmd_val[eng_hf_ah])
+	eng_cm = eng_hf_ah;
+      else if (m_eng_f > eng_cmd_val[eng_sl_ah])
+	eng_cm = eng_sl_ah;
+      else if (m_eng_f > eng_cmd_val[eng_ds_ah])
+	eng_cm = eng_ds_ah;
+      else if (m_eng_f > eng_cmd_val[eng_stp])
+	eng_cm = eng_stp;
+      else if (m_eng_f > eng_cmd_val[eng_ds_as])
+	eng_cm = eng_ds_as;
+      else if (m_eng_f > eng_cmd_val[eng_sl_as])
+	eng_cm = eng_sl_as;
+      else if (m_eng_f > eng_cmd_val[eng_hf_as])
+	eng_cm = eng_hf_as;
+      else if (m_eng_f > eng_cmd_val[eng_fl_as])
+	eng_cm = eng_fl_as;
     }
-  }
-  
-  if(crz_cm != crz_undef){
-    switch(crz_cm){
-    case crz_stp:
-    case crz_ds_ah:
-    case crz_sl_ah:
-    case crz_hf_ah:
-    case crz_fl_ah:
-    case crz_nf:
-    case crz_ds_as:
-    case crz_sl_as:
-    case crz_hf_as:
-    case crz_fl_as:
-      m_eng_f = (float)crz_cmd_val[crz_cm];
-      break;
-    case crz_mds:
-    case crz_p10:
-    case crz_p20:
-    case crz_hap:
-    case crz_s10:
-    case crz_s20:
-    case crz_has:
-      m_rud_f = (float)crz_cmd_val[crz_cm];
-      break;
+
+    if (m_js.elx & s_jc_u3613m::EB_EVUP) {
+      for (rud_cm = rud_hap;
+	   rud_cm != rud_has && m_rud_f <  rud_cmd_val[rud_cm+1];
+	   rud_cm = (e_rud_cmd)(rud_cm+1));
     }
-    crz_cm = crz_undef;
+    
+    if (m_js.erx & s_jc_u3613m::EB_EVUP) {
+      for (rud_cm = rud_has;
+	   rud_cm != rud_hap && m_rud_f > rud_cmd_val[rud_cm-1];
+	   rud_cm = (e_rud_cmd)(rud_cm-1));
+    }
+    
+    if(eng_cm != eng_undef)
+      m_eng_f = eng_cmd_val[eng_cm];
+
+    if(rud_cm != rud_undef)
+      m_rud_f = rud_cmd_val[rud_cm];
   }
   
   m_inst.tcur = get_time();

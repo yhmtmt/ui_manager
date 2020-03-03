@@ -33,6 +33,7 @@
 
 #include "util/c_ui_box.hpp"
 #include "util/c_map_obj.hpp"
+#include "ui_command.hpp"
 
 class f_ui_manager: public f_glfw_window
 {
@@ -214,32 +215,47 @@ private:
     cm_crz, cm_ctl, cm_csr, cm_ap, cm_stb, cm_undef
   } ctrl_mode;
 
-  static const char * str_ctrl_mode[cm_undef];
+
+  enum e_eng_cmd{
+    eng_stp,
+    eng_ds_ah, eng_sl_ah, eng_hf_ah, eng_fl_ah, eng_nf,
+    eng_ds_as, eng_sl_as, eng_hf_as, eng_fl_as,
+    eng_undef
+  };
+  unsigned char eng_cmd_val[eng_undef];
+  enum e_rud_cmd{    
+    rud_mds,
+    rud_p10,rud_p20,rud_hap,
+    rud_s10,rud_s20, rud_has,
+    rud_undef
+  };
+  unsigned char rud_cmd_val[rud_undef];
+
   
-  enum e_crz_cmd{
-    crz_stp,
-    crz_ds_ah, crz_sl_ah, crz_hf_ah, crz_fl_ah, crz_nf,
-    crz_ds_as, crz_sl_as, crz_hf_as, crz_fl_as, 
-    crz_mds,
-    crz_p10,crz_p20,crz_hap,
-    crz_s10,crz_s20, crz_has,
-    crz_undef
-  } crz_cm;
-  static const char * str_crz_cmd[crz_undef];
-  static const char * str_crz_cmd_exp[crz_undef];
-  unsigned char crz_cmd_val[crz_undef];
+  enum e_rev_cmd{
+    rev_stp,
+    rev_ds_ah, rev_sl_ah, rev_hf_ah, rev_fl_ah, rev_nf,
+    rev_ds_as, rev_sl_as, rev_hf_as, rev_fl_as,
+    rev_undef
+  };
+  short rev_cmd_val[rev_undef];
+
+  enum e_sog_cmd{
+    sog_stp,
+    sog_ds_ah, sog_sl_ah, sog_hf_ah, sog_fl_ah, sog_nf,
+    sog_ds_as, sog_sl_as, sog_hf_as, sog_fl_as,
+    sog_undef
+  };
+  float sog_cmd_val[sog_undef];
   
-  enum e_stb_cmd{
-    stb_stp,
-    stb_ds_ah, stb_sl_ah, stb_hf_ah, stb_fl_ah, stb_nf,
-    stb_ds_as, stb_sl_as, stb_hf_as, stb_fl_as, 
-    stb_undef
-  } stb_cm; // if not used, stb_undef is used 
-  static const char * str_stb_cmd[stb_undef];
-  static const char * str_stb_cmd_exp[stb_undef];
-  short stb_cmd_val[stb_undef]; 
-  float stb_cog_tgt; // if not set, FLT_MAX is used
-  
+  enum e_cog_cmd{
+    cog_p5, cog_p10, cog_p20, cog_s5, cog_s10, cog_s20,
+    cog_undef
+  };
+  float cog_cmd_val[cog_undef];
+
+
+  float stb_cog_tgt; // if not set, FLT_MAX is used  
   float sog_max, rev_max;
   float cog_tgt, sog_tgt, rev_tgt;
   
@@ -379,7 +395,34 @@ private:
   virtual void _key_callback(int key, int scancode, int action, int mods);
 
   // helper for init_run()
-  
+
+
+  // ui command and handlers
+  s_ui_command cmd;
+
+  void command_handler();
+  void handle_quit();
+  char path_quit_script[1024];
+  char quit_script[1024];
+  void handle_set_ctrl_mode();
+  void handle_set_ctrl_value();
+  void handle_set_ctrl_command();
+  void handle_radar_on();
+  void handle_radar_off();
+  void handle_set_radar_range();
+  void handle_set_radar_gain();
+  void handle_set_radar_sea();
+  void handle_set_radar_rain();
+  void handle_set_radar_interference();
+  void handle_set_radar_speed();
+  void handle_add_waypoint();
+  void handle_del_waypoint();
+  void handle_load_waypoints();
+  void handle_reverse_waypoints();
+  void handle_refresh_waypoints();
+  void handle_set_map_range();
+  void handle_set_map_center();
+  void handle_set_map_obj();
 public:
   f_ui_manager(const char * name);
   virtual ~f_ui_manager();
@@ -391,6 +434,5 @@ public:
   // If LT+LB+RT+RB is detected, the system forces the controls to be nutral state. Called by default.
   void ui_force_ctrl_stop(c_ctrl_mode_box * pcm_box);
   void js_force_ctrl_stop(c_ctrl_mode_box * pcm_box);
-  bool m_quit;
 };
 #endif
