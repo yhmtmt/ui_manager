@@ -31,7 +31,7 @@ f_ui_manager::f_ui_manager(const char * name) :
   bupdate_map(true), pt_prev_map_update(0, 0, 0),
   map_range(4000), map_range_base(1000),  sz_mark(10.0f), mouse_state(ms_normal),
   bmap_center_free(false), btn_pushed(ebtn_nul), btn_released(ebtn_nul),
-  ctrl_mode(cm_crz), stb_cog_tgt(FLT_MAX),
+  stb_cog_tgt(FLT_MAX),
   m_rud_f(127.), m_eng_f(127.),
   cog_tgt(0.f), sog_tgt(3.0f), rev_tgt(700),  sog_max(23),  rev_max(5600)
 {
@@ -83,7 +83,11 @@ f_ui_manager::f_ui_manager(const char * name) :
   register_fpar("ss", &m_bss, "Screen shot now.");
   register_fpar("svw", &m_bsvw, "Screen video write.");
 
-  // for aws1  
+  // for aws1
+  eng_cmd_val[eng_fl_as] = 33;
+  eng_cmd_val[eng_hf_as] = 43;
+  eng_cmd_val[eng_sl_as] = 53;
+  eng_cmd_val[eng_ds_as] =102; 
   eng_cmd_val[eng_stp] = 127;   // neutral
   eng_cmd_val[eng_ds_ah] = 152; // 700rpm
   eng_cmd_val[eng_sl_ah] = 200; //1000rpm
@@ -91,54 +95,46 @@ f_ui_manager::f_ui_manager(const char * name) :
   eng_cmd_val[eng_fl_ah] = 220; //4500rpm
   eng_cmd_val[eng_nf] = 225;    //5200rpm
   
-  eng_cmd_val[eng_ds_as] =102; 
-  eng_cmd_val[eng_sl_as] = 53;
-  eng_cmd_val[eng_hf_as] = 43;
-  eng_cmd_val[eng_fl_as] = 33;
-
+  rud_cmd_val[rud_hap] = 0;
+  rud_cmd_val[rud_p20] = 47;
+  rud_cmd_val[rud_p10] = 87;
   rud_cmd_val[rud_mds] = 127;
   rud_cmd_val[rud_s10] = 140;
   rud_cmd_val[rud_s20] = 180;
   rud_cmd_val[rud_has] = 255;
-  rud_cmd_val[rud_p10] = 87;
-  rud_cmd_val[rud_p20] = 47;
-  rud_cmd_val[rud_hap] = 0;
 
-  
+  rev_cmd_val[rev_fl_as] = -2000;
+  rev_cmd_val[rev_hf_as] =  -1500;
+  rev_cmd_val[rev_sl_as] = -1000;
+  rev_cmd_val[rev_ds_as] =-700; 
   rev_cmd_val[rev_stp] = 0; 
   rev_cmd_val[rev_ds_ah] = 700;
   rev_cmd_val[rev_sl_ah] = 1200;
   rev_cmd_val[rev_hf_ah] = 2500;
   rev_cmd_val[rev_fl_ah] = 4000;
   rev_cmd_val[rev_nf] = 5500;  
-  rev_cmd_val[rev_ds_as] =-700; 
-  rev_cmd_val[rev_sl_as] = -1000;
-  rev_cmd_val[rev_hf_as] =  -1500;
-  rev_cmd_val[rev_fl_as] = -2000;
   
-  cog_cmd_val[cog_p5] = -5;
-  cog_cmd_val[cog_p10] = -10;
   cog_cmd_val[cog_p20] = -20;
+  cog_cmd_val[cog_p10] = -10;
+  cog_cmd_val[cog_p5] = -5;
+  cog_cmd_val[cog_0] = 0;
   cog_cmd_val[cog_s5] = 5;
   cog_cmd_val[cog_s10] = 10;
   cog_cmd_val[cog_s20] = 20;
 
+  sog_cmd_val[sog_fl_as] = -8;
+  sog_cmd_val[sog_hf_as] = -6;
+  sog_cmd_val[sog_sl_as] = -4;
+  sog_cmd_val[sog_ds_as] = -2; 
   sog_cmd_val[sog_stp] = 0; 
   sog_cmd_val[sog_ds_ah] = 2;
   sog_cmd_val[sog_sl_ah] = 5;
   sog_cmd_val[sog_hf_ah] = 10;
   sog_cmd_val[sog_fl_ah] = 15;
   sog_cmd_val[sog_nf] = 20;  
-  sog_cmd_val[sog_ds_as] = -2; 
-  sog_cmd_val[sog_sl_as] = -4;
-  sog_cmd_val[sog_hf_as] = -6;
-  sog_cmd_val[sog_fl_as] = -8;
   
   register_fpar("sog_max", &sog_max, "Maximum allowed SOG in kts");
   register_fpar("rev_max", &rev_max, "Maximum allowed REV in rpm");
-  register_fpar("sog_tgt", &sog_tgt, "Target SOG in kts");
-  register_fpar("rev_tgt", &rev_tgt, "Target REV in rpm");
-  register_fpar("cog_tgt", &cog_tgt, "Target COG in degree");
 
   register_fpar("cmd_id", (int*)(&cmd.id), (int)UC_NULL, str_ui_command, "Command id");
   register_fpar("ival0", &cmd.ival0, "Integer command argument 0 (64bit)");
@@ -149,8 +145,10 @@ f_ui_manager::f_ui_manager(const char * name) :
   register_fpar("fval1", &cmd.fval1, "Float command argument 1 (64bit)");
   register_fpar("fval2", &cmd.fval2, "Float command argument 2 (64bit)");
   register_fpar("fval3", &cmd.fval3, "Float command argument 3 (64bit)");
-  register_fpar("path_quit_script", path_quit_script, 1024, "Path to the quit script.");
-  register_fpar("quit_script", quit_script, 1024, "File name of the quit script");
+  register_fpar("path_quit_script", path_quit_script, 1024,
+		"Path to the quit script.");
+  register_fpar("quit_script", quit_script, 1024,
+		"File name of the quit script");
 }
 
 
@@ -479,8 +477,6 @@ void f_ui_manager::ui_force_ctrl_stop(c_ctrl_mode_box * pcm_box)
   m_inst.ctrl_src = ACS_UI;
   m_eng_f = m_rud_f = 127.f;
   m_inst.rud_aws = m_inst.eng_aws = 127;
-  ctrl_mode = cm_crz;
-  pcm_box->set_mode(c_ctrl_mode_box::crz);
 }
 
 void f_ui_manager::js_force_ctrl_stop(c_ctrl_mode_box * pcm_box)
@@ -587,6 +583,7 @@ void f_ui_manager::update_route(c_route_cfg_box * prc_box)
   
   if (!visible_obj[ui_obj_wp])
     return;
+  
   m_ch_wp->lock();
   int iwp = 0;
   
@@ -666,7 +663,9 @@ void f_ui_manager::update_ais_objs()
   m_ch_ais_obj->unlock();  
   
   oais.set_fpv_param(pvm, glm::vec2(m_sz_win.width, m_sz_win.height));
-  oais.set_map_param(pix_per_meter, Rmap, pt_map_center_ecef.x, pt_map_center_ecef.y, pt_map_center_ecef.z);
+  oais.set_map_param(pix_per_meter, Rmap,
+		     pt_map_center_ecef.x, pt_map_center_ecef.y,
+		     pt_map_center_ecef.z);
   
   oais.update_drawings();
 }
@@ -675,6 +674,7 @@ void f_ui_manager::update_map()
 {  
   if (!m_ch_map)
     return;
+  
   coast_line.set_fpv_param(pvm, glm::vec2(m_sz_win.width, m_sz_win.height));
   coast_line.set_map_param(pix_per_meter, Rmap,
 			   pt_map_center_ecef.x, pt_map_center_ecef.y,
@@ -916,8 +916,20 @@ void f_ui_manager::handle_set_ctrl_mode()
   if(cmd.ival0 == ACS_AP){
     if(cmd.ival1 >= EAP_NONE || cmd.ival1 < 0)
       return;
-    else
-      m_ch_ap_inst->set_mode((e_ap_mode)cmd.ival1);    
+    else {
+      m_ch_ap_inst->set_mode((e_ap_mode)cmd.ival1);
+      switch(m_ch_ap_inst->get_mode()){
+      case EAP_STAY:
+	{
+	  long long t;
+	  double lat, lon;
+	  m_state->get_position(t, lat, lon);
+	  m_ch_ap_inst->set_stay_pos(lat, lon);
+	}
+      default:
+	break;
+      }       
+    }
   }
 
   m_inst.ctrl_src = (e_aws1_ctrl_src) cmd.ival0;
@@ -925,7 +937,15 @@ void f_ui_manager::handle_set_ctrl_mode()
 
 void f_ui_manager::handle_set_ctrl_value()
 {
-    switch(m_inst.ctrl_src){
+  // ACS_UI (UI control mode)
+  // cmd.fval0 : eng
+  // cmd.fval1 : rud
+  //
+  // ACS_AP (Autopilot control mode)
+  // cmd.fval0 : rev_tgt or sog_tgt
+  // cmd.fval1 : cog_tgt
+
+  switch(m_inst.ctrl_src){
   case ACS_UI: // fval0,fval1-> m_eng_f,m_rud_f
     if(cmd.fval0 >= 0 && cmd.fval0 <= 255)
       m_eng_f = cmd.fval0;
@@ -947,12 +967,20 @@ void f_ui_manager::handle_set_ctrl_value()
 
 void f_ui_manager::handle_set_ctrl_command()
 {
+  // ACS_UI (UI control mode)
+  // cmd.ival0 : eng in {eng_fl_as .. eng_nf}
+  // cmd.ival1 : rud in {rud_hap .. rud_has}
+  //
+  // ACS_AP (Autopilot control mode)
+  // cmd.ival0 : rev in {rev_fl_as .. rev_nf} or sog in {sog_fl_as .. sog_nf}
+  // cmd.ival1 : cog in {cog_p20 .. cog_s20}
+  
   switch(m_inst.ctrl_src){
   case ACS_UI: // fval0,fval1-> m_eng_f,m_rud_f
     if(cmd.ival0 >= 0 && cmd.ival0 < eng_undef)
       m_eng_f = eng_cmd_val[cmd.ival0];
-    else if(cmd.ival0 < rud_undef)
-      m_rud_f = rud_cmd_val[cmd.ival0];
+    if(cmd.ival1 >= 0 && cmd.ival1 < rud_undef)
+      m_rud_f = rud_cmd_val[cmd.ival1];
     break;
   case ACS_AP: // fval0,fval1-> rev_tgt or sog_tgt,cog_tgt
     if(m_ch_ap_inst->get_mode() == EAP_STB_MAN){
@@ -972,23 +1000,177 @@ void f_ui_manager::handle_set_ctrl_command()
   }
 }
 
-  void f_ui_manager::handle_radar_on(){}
-  void f_ui_manager::handle_radar_off(){}
-  void f_ui_manager::handle_set_radar_range(){}
-  void f_ui_manager::handle_set_radar_gain(){}
-  void f_ui_manager::handle_set_radar_sea(){}
-  void f_ui_manager::handle_set_radar_rain(){}
-  void f_ui_manager::handle_set_radar_interference(){}
-  void f_ui_manager::handle_set_radar_speed(){}
-  void f_ui_manager::handle_add_waypoint(){}
-  void f_ui_manager::handle_del_waypoint(){}
-  void f_ui_manager::handle_load_waypoints(){}
-  void f_ui_manager::handle_reverse_waypoints(){}
-  void f_ui_manager::handle_refresh_waypoints(){}
-  void f_ui_manager::handle_set_map_range(){}
-  void f_ui_manager::handle_set_map_center(){}
-  void f_ui_manager::handle_set_map_obj(){}
+void f_ui_manager::handle_radar_on()
+{
+  if(m_ch_radar_ctrl){
+    m_ch_radar_ctrl->push(RC_TXON); 
+  }
+}
 
+void f_ui_manager::handle_radar_off()
+{
+  if(m_ch_radar_ctrl){
+    m_ch_radar_ctrl->push(RC_TXOFF);
+  }
+}
+
+void f_ui_manager::handle_set_radar_range()
+{ // cmd.ival0 : range in meter
+  if(m_ch_radar_ctrl){
+    m_ch_radar_ctrl->push(RC_RANGE, (int)cmd.ival0);
+  }
+}
+
+void f_ui_manager::handle_set_radar_gain()
+{ // cmd.ival0 : RadarControlState 0: Manual, <=1: Auto 
+  // cmd.ival1 : Gain value
+  if(m_ch_radar_ctrl){
+    m_ch_radar_ctrl->push(RC_GAIN,
+			  (int)cmd.ival1, (RadarControlState)cmd.ival0);
+  }
+}
+
+void f_ui_manager::handle_set_radar_sea()
+{ // cmd.ival0 : RadarControlState 0: Maunal, <=1: Auto, -1: Off
+  // cmd.ival1 : Sea value
+  if(m_ch_radar_ctrl){
+    m_ch_radar_ctrl->push(RC_SEA,
+			  (int)cmd.ival1, (RadarControlState)cmd.ival0);
+  }
+}
+
+void f_ui_manager::handle_set_radar_rain()
+{ // cmd.ival0 : RadarControlState 0: Manual, -1: Off
+  // cmd.ival1 : Rain value
+  if(m_ch_radar_ctrl){
+    m_ch_radar_ctrl->push(RC_RAIN,
+			  (int)cmd.ival1, (RadarControlState)cmd.ival0);
+  }
+}
+
+void f_ui_manager::handle_set_radar_interference()
+{ // cmd.ival0 : Interference rejection value
+  if(m_ch_radar_ctrl){
+    m_ch_radar_ctrl->push(RC_INTERFERENCE_REJECTION, (int)cmd.ival0);
+  }
+}
+
+void f_ui_manager::handle_set_radar_speed()
+{ // cmd.ival0 : Scan speed 
+  if(m_ch_radar_ctrl){
+    m_ch_radar_ctrl->push(RC_SCAN_SPEED, (int)cmd.ival0);
+  }
+}
+
+void f_ui_manager::handle_add_waypoint()
+{ // cmd.ival0 : handle
+  // 
+  // cmd.fval2 : lat
+  // cmd.fval3 : lon
+
+  if(m_ch_wp){
+    m_ch_wp->lock();
+    int cur_focus = m_ch_wp->get_focus();    
+    m_ch_wp->set_focus((int)cmd.ival0);
+    m_ch_wp->ins(cmd.fval2, cmd.fval3, 10.0, 0.f);
+    m_ch_wp->set_focus(cur_focus);
+    m_ch_wp->unlock();
+  }
+}
+
+void f_ui_manager::handle_del_waypoint()
+{ // cmd.ival0 : handle
+  if(m_ch_wp){
+    m_ch_wp->lock();
+    int cur_focus = m_ch_wp->get_focus();    
+    m_ch_wp->set_focus((int)cmd.ival0);
+    m_ch_wp->ers();
+    m_ch_wp->set_focus(cur_focus);    
+    m_ch_wp->unlock();
+  }
+} 
+
+void f_ui_manager::handle_reverse_waypoints()
+{
+  if(m_ch_wp){
+    m_ch_wp->lock();
+    m_ch_wp->rev();
+    m_ch_wp->unlock();
+  }
+}
+
+void f_ui_manager::handle_refresh_waypoints()
+{
+  if(m_ch_wp){
+    m_ch_wp->lock();
+    m_ch_wp->ref();
+    m_ch_wp->unlock();
+  }
+}
+
+void f_ui_manager::handle_set_map_range()
+{ // cmd.ival0 : range in meter
+  map_range = (int)cmd.ival0;
+  recalc_range();
+  bupdate_map = true;
+}
+
+void f_ui_manager::handle_set_map_center()
+{
+  // cmd.ival0 : 0: map center as own ship position,
+  //             1: map center as fval2, fval3
+  //             2: map move fval2(dx), fval3(dy)
+  // cmd.fval2,fval3: lat, lon
+
+  if(cmd.ival0 == 0){
+    bmap_center_free = false;
+  }
+  
+  if(cmd.ival0 == 1){
+    if(bmap_center_free){
+      bmap_center_free = true;
+    }
+    pt_map_center_blh.x = cmd.fval2;
+    pt_map_center_blh.y = cmd.fval3;
+    double x, y, z;
+    blhtoecef((double)pt_map_center_blh.x, (double)pt_map_center_blh.y, 0,
+	      x, y, z);
+    pt_map_center_ecef.x = x;
+    pt_map_center_ecef.y = y;
+    pt_map_center_ecef.z = z;
+    getwrldrot(cmd.fval2, cmd.fval3, Rmap);
+  }
+
+  if(cmd.ival0 == 2){
+        if(bmap_center_free){
+      bmap_center_free = true;
+    }
+    pt_map_center_blh.x = cmd.fval2;
+    pt_map_center_blh.y = cmd.fval3;
+    double x, y, z, lat, lon, alt;
+    wrldtoecef(Rmap, 
+	       (double)pt_map_center_ecef.x, (double)pt_map_center_ecef.y,
+	       (double)pt_map_center_ecef.z,
+	       (double)cmd.fval2, (double)cmd.fval3, 0.,
+	       x, y, z);
+    pt_map_center_ecef.x = (float) x;
+    pt_map_center_ecef.y = (float) y;
+    pt_map_center_ecef.z = (float) z;	     
+    eceftoblh(x, y, z,
+	      lat, lon, alt);
+
+    pt_map_center_blh.x = (float) lat;
+    pt_map_center_blh.y = (float) lon;
+    getwrldrot(lat, lon, Rmap);
+  }
+}
+
+void f_ui_manager::handle_set_map_obj()
+{ // cmd.ival0 : obj id to be switched
+  // cmd.ival1 : 0: disable 1: enable
+  if(cmd.ival0 >= 0 && cmd.ival0 < ot_nul)
+    visible_obj[cmd.ival0] = cmd.ival1 == 1;
+}
 
 void f_ui_manager::command_handler()
 {
@@ -1058,8 +1240,6 @@ void f_ui_manager::command_handler()
 
 bool f_ui_manager::proc()
 {
-  command_handler();
-
   // loading states
   long long t = 0;
   float roll, pitch, yaw, cog, sog, vx, vy;
@@ -1122,38 +1302,43 @@ bool f_ui_manager::proc()
 
   js_force_ctrl_stop(pcm_box);
 
-  switch (ctrl_mode){
-  case cm_crz:
+  switch(m_inst.ctrl_src){
+  case ACS_UI:
     handle_ctrl_crz();
+    cog_tgt = cog;
+    if(eng_cmd_val[eng_ds_ah] <= m_stat.eng_aws) // ahead
+      rev_tgt = rpm;
+    else if (eng_cmd_val[eng_ds_as] >=  m_stat.eng_aws) //astern
+      rev_tgt = -rpm;
     break;
-  case cm_ctl:
-    handle_ctrl_ctl();
-    break;
-  case cm_csr:
-    handle_ctrl_csr();
-    break;
-  case cm_stb:
-    handle_ctrl_stb();
+  case ACS_AP:
+    switch(m_ch_ap_inst->get_mode()){
+    case EAP_WP:
+      ctrl_sog_tgt();
+      cog_tgt = cog;
+      if(eng_cmd_val[eng_ds_ah] <= m_stat.eng_aws) // ahead
+	rev_tgt = rpm;
+      else if (eng_cmd_val[eng_ds_as] >=  m_stat.eng_aws) //astern
+	rev_tgt = -rpm;
+      break;
+    case EAP_STB_MAN:
+      handle_ctrl_stb();
+      break;
+    }
+    // UI control values follow the ap's ones.
+    m_eng_f = m_stat.eng_aws; 
+    m_rud_f = m_stat.rud_aws;
     break;
   default:
-    ctrl_sog_tgt();
     break;
   }
- 
+  
   // m_inst to m_ch_ctrl_inst
   snd_ctrl_inst();
   
   // m_ch_ctrl_stat to m_stat
   rcv_ctrl_stat();
   
-  if(ctrl_mode != cm_stb){
-    cog_tgt = cog;
-    if(eng_cmd_val[eng_ds_ah] <= m_stat.eng_aws) // ahead
-      rev_tgt = rpm;
-    else if (eng_cmd_val[eng_ds_as] >=  m_stat.eng_aws) //astern
-      rev_tgt = -rpm;
-  }
-
   m_ch_ap_inst->set_tgt_sog(sog_tgt);
   m_ch_ap_inst->set_tgt_cog_and_rev(cog_tgt, rev_tgt);
 
@@ -1178,7 +1363,9 @@ bool f_ui_manager::proc()
   else{
     handle_base_mouse_event(pvm_box, pcm_box, pmc_box, prc_box);
   }
-  
+
+  command_handler();
+    
   // update ui params 
   update_ui_params(pvm_box, xown, yown, zown, vx, vy, yaw);
   
@@ -1377,61 +1564,27 @@ void f_ui_manager::handle_ctrl_crz()
     e_eng_cmd eng_cm = eng_undef;
     e_rud_cmd rud_cm = rud_undef;
     if (m_js.eux & s_jc_u3613m::EB_EVUP) {
-      if(m_eng_f < eng_cmd_val[eng_fl_as])
-	eng_cm = eng_fl_as;
-      else if(m_eng_f < eng_cmd_val[eng_hf_as])
-	eng_cm = eng_hf_as;
-      else if(m_eng_f < eng_cmd_val[eng_sl_as])
-	eng_cm = eng_sl_as;
-      else if(m_eng_f < eng_cmd_val[eng_ds_as])
-	eng_cm = eng_ds_as;
-      else if (m_eng_f < eng_cmd_val[eng_stp])
-	eng_cm = eng_stp;
-      else if (m_eng_f < eng_cmd_val[eng_ds_ah])
-	eng_cm = eng_ds_ah;
-      else if (m_eng_f < eng_cmd_val[eng_sl_ah])
-	eng_cm = eng_sl_ah;
-      else if (m_eng_f < eng_cmd_val[eng_hf_ah])
-	eng_cm = eng_hf_ah;
-      else if (m_eng_f < eng_cmd_val[eng_fl_ah])
-	eng_cm = eng_fl_ah;
-      else if (m_eng_f < eng_cmd_val[eng_nf])
-	eng_cm = eng_nf;
+      for (eng_cm = eng_fl_as;
+	   eng_cm != eng_nf && m_eng_f >= eng_cmd_val[eng_cm];
+	   eng_cm = (e_eng_cmd)(eng_cm + 1));
     }
-    
+      
     if (m_js.edx & s_jc_u3613m::EB_EVUP) {
-      if (m_eng_f > eng_cmd_val[eng_nf])
-	eng_cm = eng_nf;
-      else if (m_eng_f > eng_cmd_val[eng_fl_ah])
-	eng_cm = eng_fl_ah;
-      else if (m_eng_f > eng_cmd_val[eng_hf_ah])
-	eng_cm = eng_hf_ah;
-      else if (m_eng_f > eng_cmd_val[eng_sl_ah])
-	eng_cm = eng_sl_ah;
-      else if (m_eng_f > eng_cmd_val[eng_ds_ah])
-	eng_cm = eng_ds_ah;
-      else if (m_eng_f > eng_cmd_val[eng_stp])
-	eng_cm = eng_stp;
-      else if (m_eng_f > eng_cmd_val[eng_ds_as])
-	eng_cm = eng_ds_as;
-      else if (m_eng_f > eng_cmd_val[eng_sl_as])
-	eng_cm = eng_sl_as;
-      else if (m_eng_f > eng_cmd_val[eng_hf_as])
-	eng_cm = eng_hf_as;
-      else if (m_eng_f > eng_cmd_val[eng_fl_as])
-	eng_cm = eng_fl_as;
+      for(eng_cm = eng_nf;
+	  eng_cm != eng_fl_as && m_eng_f <= eng_cmd_val[eng_cm];
+	  eng_cm = (e_eng_cmd)(eng_cm - 1));
     }
 
     if (m_js.elx & s_jc_u3613m::EB_EVUP) {
-      for (rud_cm = rud_hap;
-	   rud_cm != rud_has && m_rud_f <  rud_cmd_val[rud_cm+1];
-	   rud_cm = (e_rud_cmd)(rud_cm+1));
+      for (rud_cm = rud_has;
+	   rud_cm != rud_hap && m_rud_f <=  rud_cmd_val[rud_cm];
+	   rud_cm = (e_rud_cmd)(rud_cm - 1));
     }
     
     if (m_js.erx & s_jc_u3613m::EB_EVUP) {
-      for (rud_cm = rud_has;
-	   rud_cm != rud_hap && m_rud_f > rud_cmd_val[rud_cm-1];
-	   rud_cm = (e_rud_cmd)(rud_cm-1));
+      for (rud_cm = rud_hap;
+	   rud_cm != rud_has && m_rud_f >= rud_cmd_val[rud_cm];
+	   rud_cm = (e_rud_cmd)(rud_cm + 1));
     }
     
     if(eng_cm != eng_undef)
@@ -1730,7 +1883,10 @@ void f_ui_manager::handle_mouse_drag(c_view_mode_box * pvm_box, s_obj & obj_tmp)
   }
 }
 
-void f_ui_manager::handle_updated_ui_box(c_view_mode_box * pvm_box, c_ctrl_mode_box * pcm_box, c_map_cfg_box * pmc_box, c_route_cfg_box * prc_box) 
+void f_ui_manager::handle_updated_ui_box(c_view_mode_box * pvm_box,
+					 c_ctrl_mode_box * pcm_box,
+					 c_map_cfg_box * pmc_box,
+					 c_route_cfg_box * prc_box) 
 {
   e_mouse_state mouse_state_new = ms_normal;
   switch (uim.get_box_updated()){
@@ -1738,7 +1894,7 @@ void f_ui_manager::handle_updated_ui_box(c_view_mode_box * pvm_box, c_ctrl_mode_
     update_view_mode_box(pvm_box);
     break;
   case c_aws_ui_box_manager::ctrl_mode:
-    update_ctrl_mode_box(pcm_box);
+    //    update_ctrl_mode_box(pcm_box);
     break;
   case c_aws_ui_box_manager::map_cfg:
     update_map_cfg_box(pmc_box);
@@ -1777,16 +1933,13 @@ void f_ui_manager::update_ctrl_mode_box(c_ctrl_mode_box * pcm_box)
     {
     case c_ctrl_mode_box::crz:
       m_inst.ctrl_src = ACS_UI;
-      ctrl_mode = cm_crz;
       break;
     case c_ctrl_mode_box::csr:
       m_inst.ctrl_src = ACS_AP;
-      ctrl_mode = cm_csr;
       m_ch_ap_inst->set_mode(EAP_CURSOR);
       break;
     case c_ctrl_mode_box::ctl:
       m_inst.ctrl_src = ACS_UI;
-      ctrl_mode = cm_ctl;
       break;
     case c_ctrl_mode_box::sty:
       m_inst.ctrl_src = ACS_AP;
@@ -1797,22 +1950,18 @@ void f_ui_manager::update_ctrl_mode_box(c_ctrl_mode_box * pcm_box)
 	m_state->get_position(t, lat, lon);
 	m_ch_ap_inst->set_stay_pos(lat, lon);
       }
-      ctrl_mode = cm_ap;
       break;
     case c_ctrl_mode_box::fwp:
       m_inst.ctrl_src = ACS_AP;
       m_ch_ap_inst->set_mode(EAP_WP);
-      ctrl_mode = cm_ap;
       break;
     case c_ctrl_mode_box::ftg:
       m_inst.ctrl_src = ACS_AP;
       m_ch_ap_inst->set_mode(EAP_FLW_TGT);
-      ctrl_mode = cm_ap;
       break;
     case c_ctrl_mode_box::stb:
       m_inst.ctrl_src = ACS_AP;
       m_ch_ap_inst->set_mode(EAP_STB_MAN);
-      ctrl_mode = cm_stb;
     }
 }
 

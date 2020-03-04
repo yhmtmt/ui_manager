@@ -211,45 +211,41 @@ private:
   void rcv_ctrl_stat(); // recieve m_stat from m_ch_ctrl_stat.
 
   // AWS1's manual control mode, crz: Cruise mode (for usual crusing), ctl: Control mode (for precise control), csr: Cursor mode (AWS1 follows mouse cursor)
-  enum e_ctrl_mode{
-    cm_crz, cm_ctl, cm_csr, cm_ap, cm_stb, cm_undef
-  } ctrl_mode;
-
 
   enum e_eng_cmd{
+    eng_fl_as, eng_hf_as, eng_sl_as, eng_ds_as,
     eng_stp,
     eng_ds_ah, eng_sl_ah, eng_hf_ah, eng_fl_ah, eng_nf,
-    eng_ds_as, eng_sl_as, eng_hf_as, eng_fl_as,
     eng_undef
   };
   unsigned char eng_cmd_val[eng_undef];
+  
   enum e_rud_cmd{    
+    rud_hap, rud_p20, rud_p10,
     rud_mds,
-    rud_p10,rud_p20,rud_hap,
-    rud_s10,rud_s20, rud_has,
+    rud_s10, rud_s20, rud_has,
     rud_undef
   };
   unsigned char rud_cmd_val[rud_undef];
-
-  
+ 
   enum e_rev_cmd{
+    rev_fl_as, rev_hf_as, rev_sl_as, rev_ds_as,
     rev_stp,
     rev_ds_ah, rev_sl_ah, rev_hf_ah, rev_fl_ah, rev_nf,
-    rev_ds_as, rev_sl_as, rev_hf_as, rev_fl_as,
     rev_undef
   };
   short rev_cmd_val[rev_undef];
 
   enum e_sog_cmd{
+    sog_fl_as, sog_hf_as, sog_sl_as, sog_ds_as,
     sog_stp,
     sog_ds_ah, sog_sl_ah, sog_hf_ah, sog_fl_ah, sog_nf,
-    sog_ds_as, sog_sl_as, sog_hf_as, sog_fl_as,
     sog_undef
   };
   float sog_cmd_val[sog_undef];
   
   enum e_cog_cmd{
-    cog_p5, cog_p10, cog_p20, cog_s5, cog_s10, cog_s20,
+    cog_p20, cog_p10, cog_p5, cog_0, cog_s5, cog_s10, cog_s20,
     cog_undef
   };
   float cog_cmd_val[cog_undef];
