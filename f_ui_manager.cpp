@@ -1064,15 +1064,34 @@ void f_ui_manager::handle_set_radar_speed()
 
 void f_ui_manager::handle_add_waypoint()
 { // cmd.ival0 : handle
-  // 
+  // cmd.ival1 : 0: relative 1: absolute
+  // relative mode (relative to the map center)
+  // cmd.fval2 : x (east positive)
+  // cmd.fval3 : y (north positive)
+  //
+  // absolute mode
   // cmd.fval2 : lat
   // cmd.fval3 : lon
 
   if(m_ch_wp){
+    double lat, lon;
+    if(cmd.ival1 == 0){ // relative mode
+      double x, y, z, alt;
+      wrldtoecef(Rmap, 
+		 (double)pt_map_center_ecef.x, (double)pt_map_center_ecef.y,
+		 (double)pt_map_center_ecef.z,
+		 (double)cmd.fval2, (double)cmd.fval3, 0.,
+		 x, y, z);
+      eceftoblh(x, y, z, lat, lon, alt);      
+    }else if(cmd.ival1 == 1){ // absolute mode
+      lat = cmd.fval2 * (PI / 180.f);
+      lon = cmd.fval3 * (PI / 180.f);
+    }
+    
     m_ch_wp->lock();
     int cur_focus = m_ch_wp->get_focus();    
     m_ch_wp->set_focus((int)cmd.ival0);
-    m_ch_wp->ins(cmd.fval2, cmd.fval3, 10.0, 0.f);
+    m_ch_wp->ins(lat, lon, 10.0, 0.f);
     m_ch_wp->set_focus(cur_focus);
     m_ch_wp->unlock();
   }
@@ -1124,14 +1143,11 @@ void f_ui_manager::handle_set_map_center()
 
   if(cmd.ival0 == 0){
     bmap_center_free = false;
-  }
-  
-  if(cmd.ival0 == 1){
-    if(bmap_center_free){
-      bmap_center_free = true;
-    }
-    pt_map_center_blh.x = cmd.fval2;
-    pt_map_center_blh.y = cmd.fval3;
+  }else if(cmd.ival0 == 1){
+    bmap_center_free = true;
+
+    pt_map_center_blh.x = (float)(cmd.fval2 * (PI/180.f));
+    pt_map_center_blh.y = (float)(cmd.fval3 * (PI/180.f));
     double x, y, z;
     blhtoecef((double)pt_map_center_blh.x, (double)pt_map_center_blh.y, 0,
 	      x, y, z);
@@ -1139,14 +1155,8 @@ void f_ui_manager::handle_set_map_center()
     pt_map_center_ecef.y = y;
     pt_map_center_ecef.z = z;
     getwrldrot(cmd.fval2, cmd.fval3, Rmap);
-  }
-
-  if(cmd.ival0 == 2){
-        if(bmap_center_free){
-      bmap_center_free = true;
-    }
-    pt_map_center_blh.x = cmd.fval2;
-    pt_map_center_blh.y = cmd.fval3;
+  }else if(cmd.ival0 == 2){
+    bmap_center_free = true;
     double x, y, z, lat, lon, alt;
     wrldtoecef(Rmap, 
 	       (double)pt_map_center_ecef.x, (double)pt_map_center_ecef.y,
@@ -1210,7 +1220,7 @@ void f_ui_manager::command_handler()
   case UC_SETRDIFR:
     handle_set_radar_interference();
     break;
-  case UC_SETSPD:
+  case UC_SETRDSPD:
     handle_set_radar_speed();
     break;
   case UC_ADDWP:

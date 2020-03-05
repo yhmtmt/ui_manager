@@ -29,11 +29,11 @@ enum ui_command_id{
   UC_RDON,        // Radar on
   UC_RDOFF,       // Radar off
   UC_SETRDRANGE,    // Set radar range
-  UC_SETRDGAIN,   // Set radar gain
-  UC_SETRDSEA,    // Set sea clutter reduction
-  UC_SETRDRAIN,   // Set rain clutter reduction
-  UC_SETRDIFR,    // Set interference rejection
-  UC_SETSPD,      // Set scan speed
+  UC_SETRDGAIN,     // Set radar gain
+  UC_SETRDSEA,      // Set sea clutter reduction
+  UC_SETRDRAIN,     // Set rain clutter reduction
+  UC_SETRDIFR,      // Set interference rejection
+  UC_SETRDSPD,      // Set scan speed
   
   // waypoint and route related command
   UC_ADDWP,        // Add waypoint
