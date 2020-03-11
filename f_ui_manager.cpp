@@ -33,7 +33,8 @@ f_ui_manager::f_ui_manager(const char * name) :
   bmap_center_free(false), btn_pushed(ebtn_nul), btn_released(ebtn_nul),
   stb_cog_tgt(FLT_MAX),
   m_rud_f(127.), m_eng_f(127.),
-  cog_tgt(0.f), sog_tgt(3.0f), rev_tgt(700),  sog_max(23),  rev_max(5600)
+  cog_tgt(0.f), sog_tgt(3.0f), rev_tgt(700),  sog_max(23),  rev_max(5600),
+  msg_builder(1024)
 {
   m_path_storage[0] = '.';m_path_storage[1] = '\0';
  
@@ -270,7 +271,7 @@ bool f_ui_manager::init_run()
       cerr << "Autopilot instruction channel is not connected." << endl;
     }
   
-  m_inst.ctrl_src = ACS_UI;
+  m_inst.ctrl_src = ControlSource_UI;
   m_inst.tcur = get_time();
   m_inst.rud_aws = 127;
   m_inst.eng_aws = 127;
@@ -430,6 +431,11 @@ bool f_ui_manager::init_run()
   cout << "line3d_map:" << oline3d_map.get_used_resource_size()
        << "/" << oline3d_map.get_reserved_resource_size() << endl;
 
+
+  msg_builder.Clear();
+  
+  FinishUIManagerMsgBuffer(msg_builder,CreateUIManagerMsg(msg_builder));
+  
   return true;
 }
 
@@ -474,7 +480,7 @@ void f_ui_manager::destroy_run()
 
 void f_ui_manager::ui_force_ctrl_stop(c_ctrl_mode_box * pcm_box)
 {
-  m_inst.ctrl_src = ACS_UI;
+  m_inst.ctrl_src = ControlSource_UI;
   m_eng_f = m_rud_f = 127.f;
   m_inst.rud_aws = m_inst.eng_aws = 127;
 }
@@ -909,17 +915,17 @@ void f_ui_manager::handle_quit()
 
 void f_ui_manager::handle_set_ctrl_mode()
 {
-  if(cmd.ival0 >= ACS_NONE ||  cmd.ival0 < 0){
+  if(cmd.ival0 >= ControlSource_NONE ||  cmd.ival0 < 0){
     return;    
   }
 
-  if(cmd.ival0 == ACS_AP){
-    if(cmd.ival1 >= EAP_NONE || cmd.ival1 < 0)
+  if(cmd.ival0 == ControlSource_AP){
+    if(cmd.ival1 >= AutopilotMode_NONE || cmd.ival1 < 0)
       return;
     else {
-      m_ch_ap_inst->set_mode((e_ap_mode)cmd.ival1);
+      m_ch_ap_inst->set_mode((AutopilotMode)cmd.ival1);
       switch(m_ch_ap_inst->get_mode()){
-      case EAP_STAY:
+      case AutopilotMode_STAY:
 	{
 	  long long t;
 	  double lat, lon;
@@ -932,28 +938,28 @@ void f_ui_manager::handle_set_ctrl_mode()
     }
   }
 
-  m_inst.ctrl_src = (e_aws1_ctrl_src) cmd.ival0;
+  m_inst.ctrl_src = (ControlSource) cmd.ival0;
 }
 
 void f_ui_manager::handle_set_ctrl_value()
 {
-  // ACS_UI (UI control mode)
+  // ControlSource_UI (UI control mode)
   // cmd.fval0 : eng
   // cmd.fval1 : rud
   //
-  // ACS_AP (Autopilot control mode)
+  // ControlSource_AP (Autopilot control mode)
   // cmd.fval0 : rev_tgt or sog_tgt
   // cmd.fval1 : cog_tgt
 
   switch(m_inst.ctrl_src){
-  case ACS_UI: // fval0,fval1-> m_eng_f,m_rud_f
+  case ControlSource_UI: // fval0,fval1-> m_eng_f,m_rud_f
     if(cmd.fval0 >= 0 && cmd.fval0 <= 255)
       m_eng_f = cmd.fval0;
     if(cmd.fval1 >= 0 && cmd.fval1 <= 255)
       m_rud_f = cmd.fval1;
     break;
-  case ACS_AP: // fval0,fval1-> rev_tgt or sog_tgt,cog_tgt
-    if(m_ch_ap_inst->get_mode() == EAP_STB_MAN){
+  case ControlSource_AP: // fval0,fval1-> rev_tgt or sog_tgt,cog_tgt
+    if(m_ch_ap_inst->get_mode() == AutopilotMode_STB_MAN){
       if(cmd.fval0 >= -rev_max && cmd.fval0 <= rev_max)
 	rev_tgt = cmd.fval0;
     }else{
@@ -967,23 +973,23 @@ void f_ui_manager::handle_set_ctrl_value()
 
 void f_ui_manager::handle_set_ctrl_command()
 {
-  // ACS_UI (UI control mode)
+  // ControlSource_UI (UI control mode)
   // cmd.ival0 : eng in {eng_fl_as .. eng_nf}
   // cmd.ival1 : rud in {rud_hap .. rud_has}
   //
-  // ACS_AP (Autopilot control mode)
+  // ControlSource_AP (Autopilot control mode)
   // cmd.ival0 : rev in {rev_fl_as .. rev_nf} or sog in {sog_fl_as .. sog_nf}
   // cmd.ival1 : cog in {cog_p20 .. cog_s20}
   
   switch(m_inst.ctrl_src){
-  case ACS_UI: // fval0,fval1-> m_eng_f,m_rud_f
+  case ControlSource_UI: // fval0,fval1-> m_eng_f,m_rud_f
     if(cmd.ival0 >= 0 && cmd.ival0 < eng_undef)
       m_eng_f = eng_cmd_val[cmd.ival0];
     if(cmd.ival1 >= 0 && cmd.ival1 < rud_undef)
       m_rud_f = rud_cmd_val[cmd.ival1];
     break;
-  case ACS_AP: // fval0,fval1-> rev_tgt or sog_tgt,cog_tgt
-    if(m_ch_ap_inst->get_mode() == EAP_STB_MAN){
+  case ControlSource_AP: // fval0,fval1-> rev_tgt or sog_tgt,cog_tgt
+    if(m_ch_ap_inst->get_mode() == AutopilotMode_STB_MAN){
       if(cmd.ival0 >= 0 && cmd.ival0 < rev_undef)
 	rev_tgt = rev_cmd_val[cmd.ival0];
     }else{
@@ -1313,7 +1319,7 @@ bool f_ui_manager::proc()
   js_force_ctrl_stop(pcm_box);
 
   switch(m_inst.ctrl_src){
-  case ACS_UI:
+  case ControlSource_UI:
     handle_ctrl_crz();
     cog_tgt = cog;
     if(eng_cmd_val[eng_ds_ah] <= m_stat.eng_aws) // ahead
@@ -1321,9 +1327,9 @@ bool f_ui_manager::proc()
     else if (eng_cmd_val[eng_ds_as] >=  m_stat.eng_aws) //astern
       rev_tgt = -rpm;
     break;
-  case ACS_AP:
+  case ControlSource_AP:
     switch(m_ch_ap_inst->get_mode()){
-    case EAP_WP:
+    case AutopilotMode_WP:
       ctrl_sog_tgt();
       cog_tgt = cog;
       if(eng_cmd_val[eng_ds_ah] <= m_stat.eng_aws) // ahead
@@ -1331,7 +1337,7 @@ bool f_ui_manager::proc()
       else if (eng_cmd_val[eng_ds_as] >=  m_stat.eng_aws) //astern
 	rev_tgt = -rpm;
       break;
-    case EAP_STB_MAN:
+    case AutopilotMode_STB_MAN:
       handle_ctrl_stb();
       break;
     }
@@ -1942,18 +1948,18 @@ void f_ui_manager::update_ctrl_mode_box(c_ctrl_mode_box * pcm_box)
   switch (pcm_box->get_mode())
     {
     case c_ctrl_mode_box::crz:
-      m_inst.ctrl_src = ACS_UI;
+      m_inst.ctrl_src = ControlSource_UI;
       break;
     case c_ctrl_mode_box::csr:
-      m_inst.ctrl_src = ACS_AP;
-      m_ch_ap_inst->set_mode(EAP_CURSOR);
+      m_inst.ctrl_src = ControlSource_AP;
+      m_ch_ap_inst->set_mode(AutopilotMode_CURSOR);
       break;
     case c_ctrl_mode_box::ctl:
-      m_inst.ctrl_src = ACS_UI;
+      m_inst.ctrl_src = ControlSource_UI;
       break;
     case c_ctrl_mode_box::sty:
-      m_inst.ctrl_src = ACS_AP;
-      m_ch_ap_inst->set_mode(EAP_STAY);
+      m_inst.ctrl_src = ControlSource_AP;
+      m_ch_ap_inst->set_mode(AutopilotMode_STAY);
       {
 	long long t; 
 	double lat, lon;
@@ -1962,16 +1968,16 @@ void f_ui_manager::update_ctrl_mode_box(c_ctrl_mode_box * pcm_box)
       }
       break;
     case c_ctrl_mode_box::fwp:
-      m_inst.ctrl_src = ACS_AP;
-      m_ch_ap_inst->set_mode(EAP_WP);
+      m_inst.ctrl_src = ControlSource_AP;
+      m_ch_ap_inst->set_mode(AutopilotMode_WP);
       break;
     case c_ctrl_mode_box::ftg:
-      m_inst.ctrl_src = ACS_AP;
-      m_ch_ap_inst->set_mode(EAP_FLW_TGT);
+      m_inst.ctrl_src = ControlSource_AP;
+      m_ch_ap_inst->set_mode(AutopilotMode_FLW_TGT);
       break;
     case c_ctrl_mode_box::stb:
-      m_inst.ctrl_src = ACS_AP;
-      m_ch_ap_inst->set_mode(EAP_STB_MAN);
+      m_inst.ctrl_src = ControlSource_AP;
+      m_ch_ap_inst->set_mode(AutopilotMode_STB_MAN);
     }
 }
 
@@ -2152,7 +2158,7 @@ void f_ui_manager::update_ui_params(c_view_mode_box * pvm_box,
     eceftowrld(Rmap, pt_map_center_ecef.x,
 	       pt_map_center_ecef.y, pt_map_center_ecef.z,
 	       xown, yown, zown, rx, ry, rz);
-    if(m_ch_ap_inst->get_mode() == EAP_STAY){
+    if(m_ch_ap_inst->get_mode() == AutopilotMode_STAY){
       m_ch_ap_inst->get_stay_pos_rel(rxs, rys, d, dir);
       rzs = 0;
     }else{

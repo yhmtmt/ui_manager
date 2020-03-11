@@ -17,6 +17,7 @@
 #define F_UI_MANAGER_HPP
 
 #include "filter_base.hpp"
+
 #include "aws_map.hpp"
 
 #include "f_glfw_window.hpp"
@@ -28,6 +29,9 @@
 #include "ch_wp.hpp"
 #include "ch_obj.hpp"
 #include "ch_radar.hpp"
+#include "ui_manager_msg_generated.h"
+using namespace Filter::UIManagerMsg;
+
 
 #define MAX_RT_FILES 10
 
@@ -419,6 +423,9 @@ private:
   void handle_set_map_range();
   void handle_set_map_center();
   void handle_set_map_obj();
+
+
+  flatbuffers::FlatBufferBuilder msg_builder;  
 public:
   f_ui_manager(const char * name);
   virtual ~f_ui_manager();
@@ -430,5 +437,15 @@ public:
   // If LT+LB+RT+RB is detected, the system forces the controls to be nutral state. Called by default.
   void ui_force_ctrl_stop(c_ctrl_mode_box * pcm_box);
   void js_force_ctrl_stop(c_ctrl_mode_box * pcm_box);
+
+  virtual const char * get_msg()
+  {
+    return (char*) msg_builder.GetBufferPointer();
+  }
+
+  virtual const size_t get_msg_size()
+  {
+    return (size_t) msg_builder.GetSize();
+  }
 };
 #endif
