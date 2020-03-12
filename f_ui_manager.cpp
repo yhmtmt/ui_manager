@@ -593,16 +593,21 @@ void f_ui_manager::update_route(c_route_cfg_box * prc_box)
   m_ch_wp->lock();
   int iwp = 0;
   
+  waypoints.resize(m_ch_wp->get_num_wps());
+  
   for (m_ch_wp->begin(); !m_ch_wp->is_end(); m_ch_wp->next())
     {
       s_wp wp = m_ch_wp->cur();
+      
       eceftowrld(Rmap,
 		 pt_map_center_ecef.x, pt_map_center_ecef.y,
 		 pt_map_center_ecef.z,
 		 wp.x, wp.y, wp.z, wp.rx, wp.ry, wp.rz);
+
       owp.update_wps(iwp, wp);
       owp.enable(iwp);
       
+      waypoints[iwp] = Waypoint(wp.lat, wp.lon);
       iwp++;
     }
   
@@ -644,6 +649,7 @@ void f_ui_manager::update_ais_objs()
     return;
   
   m_ch_ais_obj->lock();
+  aisobjects.resize(m_ch_ais_obj->get_num_objs());
   int iobj = 0;
   if (obj_mouse_on.type == ot_ais){
     m_ch_ais_obj->set_track(obj_mouse_on.handle);
@@ -651,7 +657,8 @@ void f_ui_manager::update_ais_objs()
     obj_mouse_on.handle = -1;
   }
   oais.set_focus(-1);
-  for (m_ch_ais_obj->begin(); !m_ch_ais_obj->is_end(); m_ch_ais_obj->next()){  
+  for (m_ch_ais_obj->begin(); !m_ch_ais_obj->is_end(); m_ch_ais_obj->next()){
+    c_ais_obj & obj = m_ch_ais_obj->cur();
     if (m_ch_ais_obj->get_tracking_id() >= 0){
       oais.set_focus(iobj);
     }
@@ -661,8 +668,16 @@ void f_ui_manager::update_ais_objs()
 	oais.disable(iobj);
       }else{ 
 	oais.enable(iobj);
-	oais.update_ais_obj(iobj, m_ch_ais_obj->cur());
+	oais.update_ais_obj(iobj, obj);
       }
+    }
+    {
+      double lat, lon, alt;
+      float cog, sog;
+      
+      obj.get_pos_blh(lat, lon, alt);
+      obj.get_vel_blh(cog, sog);
+      aisobjects[iobj] = AISObject(obj.get_mmsi(), lat, lon, cog, sog);
     }
     iobj++;
   }
@@ -1271,10 +1286,12 @@ bool f_ui_manager::proc()
   m_state->get_position_ecef(t, xown, yown, zown);
   
   double lat, lon;
+  float alt;
   double Rown[9];
   m_state->get_enu_rotation(t, Rown);
   m_state->get_position(t, lat, lon);
-
+  m_state->get_alt(t, alt);
+  
   float rpm = 0.0f;
   unsigned char trim = 0;
   int poil = 0;
@@ -1297,6 +1314,11 @@ bool f_ui_manager::proc()
   
   float depth;
   m_state->get_depth(t, depth);
+
+
+  float bar, temp_air, hmdr, dew, dir_wnd_t, wspd_mps;
+  bar = temp_air = hmdr = dew = dir_wnd_t = wspd_mps = 0.0f;
+  m_state->get_weather(t, bar, temp_air, hmdr, dew, dir_wnd_t, wspd_mps);
   
   c_view_mode_box * pvm_box =
     dynamic_cast<c_view_mode_box*>(uim.get_ui_box(c_aws_ui_box_manager::view_mode));
@@ -1481,13 +1503,44 @@ bool f_ui_manager::proc()
     const vector<s_radar_line*> & updates = m_ch_radar_image->get_updates();
     
     for(auto itr = updates.begin(); itr != updates.end(); itr++){
-      oradar.update_spoke((*itr)->time, (*itr)->pos.lat, (*itr)->pos.lon, range_meters, (*itr)->bearing, (*itr)->len, (*itr)->line);
+      oradar.update_spoke((*itr)->time, (*itr)->pos.lat,
+			  (*itr)->pos.lon, range_meters, (*itr)->bearing,
+			  (*itr)->len, (*itr)->line);
     }
     
     oradar.update_done();
 
     m_ch_radar_image->free_updates(get_time());
   }
+
+  // update ui state message
+  msg_builder.Clear();
+  
+
+  Control control(m_inst.ctrl_src,
+		  m_ch_ap_inst->get_mode(),
+		  m_eng_f, m_rud_f,
+		  cog_tgt, sog_tgt, rev_tgt);
+  Position position(lat, lon, alt);
+  Velocity velocity(cog, sog);
+  Attitude attitude(roll, pitch, yaw);
+  Engine engine(rpm, trim, teng, valt, frate, temp);
+  Weather weather(bar, temp_air, hmdr, dew, wspd_mps, dir_wnd_t);
+  Map map(map_range, bmap_center_free, Position((double)pt_map_center_blh.x, (double)pt_map_center_blh.y, 0.0));
+  auto msg_loc = CreateUIManagerMsg(msg_builder,
+				    get_time(),
+				    &control,
+				    &position,
+				    &velocity,
+				    &attitude,
+				    &engine, 
+				    depth,
+				    &weather,
+				    &map,
+				    msg_builder.CreateVectorOfStructs(waypoints),
+				    msg_builder.CreateVectorOfStructs(aisobjects)
+				    );
+  msg_builder.Finish(msg_loc);
   
   // rendering graphics
   render_gl_objs(pvm_box);

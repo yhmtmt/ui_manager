@@ -1,0 +1,85 @@
+include "../../fbs/radar_type.fbs";
+include "../../fbs/control_type.fbs";
+
+namespace Filter.UIManagerMsg;
+
+
+struct Position {
+       lat:double;
+       lon:double;
+       alt:double;
+}
+
+struct Attitude {
+       roll:float;
+       pitch:float;
+       yaw:float;
+}
+
+struct Velocity {
+       cog:float;
+       sog:float;
+}
+
+struct Engine{
+       rev:float;
+       trim:ubyte;	
+       temp:float;		
+       volt:float;
+       fuel:float;
+       hour:uint;
+}
+
+struct Control{
+       ctrlsrc:ControlSource;
+       apmode:AutopilotMode;
+       eng:float;
+       rud:float;
+       cog:float;
+       sog:float;
+       rev:float;
+}
+
+struct Map{
+       range:uint;
+       follow:bool;
+       center:Position;
+}
+
+struct Weather{
+       bar:float;
+       temp:float;
+       hmdr:float;
+       dew:float;
+       spdwnd:float;
+       dirwnd:float;
+}
+
+struct Waypoint{
+       lat:double;
+       lon:double;
+}
+
+struct AISObject{
+       mmsi:uint;
+       lat:double;
+       lon:double;
+       cog:float;
+       sog:float;       
+}
+
+table UIManagerMsg{
+      t:long;
+      control:Control;
+      position:Position;
+      velocity:Velocity;
+      attitude:Attitude;
+      engine:Engine;
+      depth:float;
+      weather:Weather;
+      map:Map;
+      waypoints:[Waypoint];
+      aisobjects:[AISObject];      
+}
+
+root_type UIManagerMsg;

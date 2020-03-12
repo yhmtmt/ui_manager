@@ -425,7 +425,9 @@ private:
   void handle_set_map_obj();
 
 
-  flatbuffers::FlatBufferBuilder msg_builder;  
+  flatbuffers::FlatBufferBuilder msg_builder;
+  vector<Waypoint> waypoints;
+  vector<AISObject> aisobjects;
 public:
   f_ui_manager(const char * name);
   virtual ~f_ui_manager();
