@@ -1175,7 +1175,7 @@ void f_ui_manager::handle_set_map_center()
     pt_map_center_ecef.x = x;
     pt_map_center_ecef.y = y;
     pt_map_center_ecef.z = z;
-    getwrldrot(cmd.fval2, cmd.fval3, Rmap);
+    getwrldrot((double)pt_map_center_blh.x, (double)pt_map_center_blh.y, Rmap);
   }else if(cmd.ival0 == 2){
     bmap_center_free = true;
     double x, y, z, lat, lon, alt;
@@ -1527,6 +1527,17 @@ bool f_ui_manager::proc()
   Engine engine(rpm, trim, teng, valt, frate, temp);
   Weather weather(bar, temp_air, hmdr, dew, wspd_mps, dir_wnd_t);
   Map map(map_range, bmap_center_free, Position((double)pt_map_center_blh.x, (double)pt_map_center_blh.y, 0.0));
+  
+  Radar radar((RadarState)m_ch_radar_state->get_state(),
+	      m_ch_radar_state->get_range(),
+	      m_ch_radar_state->get_gain(),
+	      (RadarControlState)m_ch_radar_state->get_gain_state(),
+	      m_ch_radar_state->get_rain(),
+	      (RadarControlState)m_ch_radar_state->get_rain_mode(),
+	      m_ch_radar_state->get_sea(),
+	      (RadarControlState)m_ch_radar_state->get_sea_mode(),
+	      m_ch_radar_state->get_interference_rejection(),
+	      m_ch_radar_state->get_scan_speed());
   auto msg_loc = CreateUIManagerMsg(msg_builder,
 				    get_time(),
 				    &control,
@@ -1537,6 +1548,7 @@ bool f_ui_manager::proc()
 				    depth,
 				    &weather,
 				    &map,
+				    &radar,
 				    msg_builder.CreateVectorOfStructs(waypoints),
 				    msg_builder.CreateVectorOfStructs(aisobjects)
 				    );

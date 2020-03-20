@@ -78,6 +78,7 @@ table UIManagerMsg{
       depth:float;
       weather:Weather;
       map:Map;
+      radar:Radar;
       waypoints:[Waypoint];
       aisobjects:[AISObject];      
 }
