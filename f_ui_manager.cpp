@@ -1304,8 +1304,10 @@ bool f_ui_manager::proc()
   int pfl = 0;
   unsigned char ld = 0;
   unsigned char tq = 0;
-  StatEng1 steng1 = (StatEng1)(EmergencyStop + 1);
-  StatEng2 steng2 = (StatEng2)(EngineShuttingDown + 1);
+  NMEA2000::EngineStatus1 steng1 =
+    (NMEA2000::EngineStatus1)(NMEA2000::EngineStatus1_MAX + 1);
+  NMEA2000::EngineStatus2 steng2 =
+    (NMEA2000::EngineStatus2)(NMEA2000::EngineStatus2_MAX + 1);
   if(m_engstate){ // currentlly only for main engine
     m_engstate->get_rapid(t, rpm, trim);
     m_engstate->get_dynamic(t, poil, toil, temp, valt,
@@ -2250,13 +2252,13 @@ void f_ui_manager::update_indicator(const float cog, const float sog,
 			const float toil, const float temp, const float valt,
 			const float frate, const unsigned int teng,
 			const int pclnt, const int pfl, const unsigned char ld,
-			const unsigned char tq, const StatEng1 steng1,
-			const StatEng2 steng2, const float depth)
+			const unsigned char tq, const NMEA2000::EngineStatus1 steng1,
+			const NMEA2000::EngineStatus2 steng2, const float depth)
 {
   float cogf = (float)(cog * (PI / 180.f));
   float yawf = (float)(yaw * (PI / 180.f));
-  const char *str_steng1 = ((steng1 >= 0 && steng1 <= EmergencyStop) ? strStatEng1[steng1] : NULL);
-  const char *str_steng2 = ((steng2 >= 0 && steng2 <= EngineShuttingDown) ? strStatEng2[steng2] : NULL);
+  const char *str_steng1 = ((steng1 >= 0 && steng1 <= NMEA2000::EngineStatus1_MAX) ? strStatEng1[steng1] : NULL);
+  const char *str_steng2 = ((steng2 >= 0 && steng2 <= NMEA2000::EngineStatus2_MAX) ? strStatEng2[steng2] : NULL);
   ind.set_param( m_time_str, m_stat.eng_aws, rpm, rev_tgt, trim, poil,
 		 toil, temp, valt, frate, teng, pclnt, pfl, ld, tq,
 		 str_steng1, str_steng2, m_stat.rud_aws,

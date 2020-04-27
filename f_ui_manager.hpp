@@ -165,8 +165,10 @@ private:
 			const float toil, const float temp, const float valt,
 			const float frate, const unsigned int teng,
 			const int pclnt, const int pfl, const unsigned char ld,
-			const unsigned char tq, const StatEng1 steng1,
-			const StatEng2 steng2, const float depth);
+			const unsigned char tq,
+			const NMEA2000::EngineStatus1 steng1,
+			const NMEA2000::EngineStatus2 steng2,
+			const float depth);
   
   //////////////////////////////////////////// map objects
   float sz_mark;		   // Basic size of each object.
