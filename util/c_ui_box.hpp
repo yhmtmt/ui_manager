@@ -513,9 +513,8 @@ class c_aws_ui_box_manager
 public:
   enum e_box{
     view_mode = 0,
-    ctrl_mode = 1,
-    map_cfg = 2,
-    route_cfg = 3,
+    map_cfg = 1,
+    route_cfg = 2,
     nul
   };
  private:

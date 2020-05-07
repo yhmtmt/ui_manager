@@ -17,13 +17,11 @@
 
 DEFINE_FILTER(f_ui_manager);
 
-
-
 f_ui_manager::f_ui_manager(const char * name) :
   f_glfw_window(name),
-  m_state(NULL), m_engstate(NULL), m_ch_sys(NULL), m_ch_ctrl_inst(NULL),
-  m_ch_ctrl_stat(NULL), m_ch_wp(NULL), m_ch_map(NULL),
-  m_ch_ais_obj(NULL), m_ch_ap_inst(NULL),
+  m_state(NULL), m_engstate(NULL), m_ch_sys(NULL),
+  m_ch_ctrl_out(nullptr), m_ch_ctrl_in(nullptr),
+  m_ch_wp(NULL), m_ch_map(NULL), m_ch_ais_obj(NULL), 
   m_ch_radar_image(NULL), m_ch_radar_ctrl(NULL), m_ch_radar_state(NULL),
   m_js_id(0), bjs(false), m_bsvw(false), m_bss(false),
   fov_cam_x(100.0f), fcam(0), height_cam(2.0f), dir_cam_hdg(0.f),
@@ -34,23 +32,34 @@ f_ui_manager::f_ui_manager(const char * name) :
   stb_cog_tgt(FLT_MAX),
   m_rud_f(127.), m_eng_f(127.),
   cog_tgt(0.f), sog_tgt(3.0f), rev_tgt(700),  sog_max(23),  rev_max(5600),
-  msg_builder(1024)
+  msg_builder(1024), ctrl_builder(64)
 {
   m_path_storage[0] = '.';m_path_storage[1] = '\0';
  
-  register_fpar("ch_state", (ch_base**)&m_state, typeid(ch_state).name(), "State channel");
-  register_fpar("ch_sys", (ch_base**)&m_ch_sys, typeid(ch_aws1_sys).name(), "System property channel");
-  register_fpar("ch_engstate", (ch_base**)&m_engstate, typeid(ch_eng_state).name(), "Engine Status channel");
-  register_fpar("ch_ctrl_inst", (ch_base**)&m_ch_ctrl_inst, typeid(ch_aws1_ctrl_inst).name(), "Control input channel.");
-  register_fpar("ch_ctrl_stat", (ch_base**)&m_ch_ctrl_stat, typeid(ch_aws1_ctrl_stat).name(), "Control output channel.");
-  register_fpar("ch_wp", (ch_base**)&m_ch_wp, typeid(ch_wp).name(), "Waypoint channel");
-  register_fpar("ch_map", (ch_base**)&m_ch_map, typeid(ch_map).name(), "Map channel");
-  register_fpar("ch_ais_obj", (ch_base**)&m_ch_ais_obj, typeid(ch_ais_obj).name(), "AIS object channel");
+  register_fpar("ch_state", (ch_base**)&m_state,
+		typeid(ch_state).name(), "State channel");
+  register_fpar("ch_sys", (ch_base**)&m_ch_sys,
+		typeid(ch_aws1_sys).name(), "System property channel");
+  register_fpar("ch_engstate", (ch_base**)&m_engstate,
+		typeid(ch_eng_state).name(), "Engine Status channel");
+  
+  register_fpar("ch_ctrl_out", (ch_base**)&m_ch_ctrl_out,
+		typeid(ch_ctrl_data).name(), "Control data out (to autopilot)");
+  register_fpar("ch_ctrl_in", (ch_base**)&m_ch_ctrl_in,
+		typeid(ch_ctrl_data).name(), "Control data in (from autopilot)");
+  register_fpar("ch_wp", (ch_base**)&m_ch_wp,
+		typeid(ch_wp).name(), "Waypoint channel");
+  register_fpar("ch_map", (ch_base**)&m_ch_map,
+		typeid(ch_map).name(), "Map channel");
+  register_fpar("ch_ais_obj", (ch_base**)&m_ch_ais_obj,
+		typeid(ch_ais_obj).name(), "AIS object channel");
 
-  register_fpar("ch_ap_inst", (ch_base**)&m_ch_ap_inst, typeid(ch_aws1_ap_inst).name(), "Autopilot instruction channel");
-  register_fpar("ch_radar_image", (ch_base**)&m_ch_radar_image, typeid(ch_radar_image).name(), "Radar image");
-  register_fpar("ch_radar_ctrl", (ch_base**)&m_ch_radar_ctrl, typeid(ch_radar_ctrl).name(), "Radar Control");
-  register_fpar("ch_radar_state", (ch_base**)&m_ch_radar_state, typeid(ch_radar_state).name());
+  register_fpar("ch_radar_image", (ch_base**)&m_ch_radar_image,
+		typeid(ch_radar_image).name(), "Radar image");
+  register_fpar("ch_radar_ctrl", (ch_base**)&m_ch_radar_ctrl,
+		typeid(ch_radar_ctrl).name(), "Radar Control");
+  register_fpar("ch_radar_state", (ch_base**)&m_ch_radar_state,
+		typeid(ch_radar_state).name());
   
   fvs[0] = ffs[0] = '\0';
   register_fpar("fvs", fvs, 1024, "File path to the vertex shader program.");
@@ -241,17 +250,6 @@ bool f_ui_manager::init_run()
 
   m_state->set_gps_ant_pos(Eigen::Vector3d(0, 0, -1.));
   
-  if (!m_ch_ctrl_inst)
-    {
-      cerr << "In filter " << m_name << ", ";
-      cerr << "Control instruction channel is not connected. " << endl;
-    }
-  
-  if (!m_ch_ctrl_stat)
-    {
-      cerr << "In filter " << m_name << ", ";
-      cerr << "Control state channel is not connected." << endl;
-    }
   
   if (!m_ch_map)
     {
@@ -264,17 +262,10 @@ bool f_ui_manager::init_run()
       cerr << "In filter " << m_name << ", ";
       cerr << "AIS object channel is not connected." << endl;
     }
-  
-  if (!m_ch_ap_inst)
-    {
-      cerr << "In filter " << m_name << ", ";
-      cerr << "Autopilot instruction channel is not connected." << endl;
-    }
-  
-  m_inst.ctrl_src = ControlSource_UI;
-  m_inst.tcur = get_time();
-  m_inst.rud_aws = 127;
-  m_inst.eng_aws = 127;
+    
+  ctrl_src = ControlSource_UI;
+  m_rud_f = 127.5;
+  m_eng_f = 127.5;
   
   if(!f_glfw_window::init_run())
     return false;
@@ -434,7 +425,8 @@ bool f_ui_manager::init_run()
 
   msg_builder.Clear();
   
-  FinishUIManagerMsgBuffer(msg_builder,CreateUIManagerMsg(msg_builder));
+  UIManagerMsg::FinishUIManagerMsgBuffer(msg_builder,
+					 UIManagerMsg::CreateUIManagerMsg(msg_builder));
   
   return true;
 }
@@ -478,21 +470,20 @@ void f_ui_manager::destroy_run()
   f_glfw_window::destroy_run();
 }
 
-void f_ui_manager::ui_force_ctrl_stop(c_ctrl_mode_box * pcm_box)
+void f_ui_manager::ui_force_ctrl_stop()
 {
-  m_inst.ctrl_src = ControlSource_UI;
+  ctrl_src = ControlSource_UI;
   m_eng_f = m_rud_f = 127.f;
-  m_inst.rud_aws = m_inst.eng_aws = 127;
 }
 
-void f_ui_manager::js_force_ctrl_stop(c_ctrl_mode_box * pcm_box)
+void f_ui_manager::js_force_ctrl_stop()
 {
   if (m_js.id != -1) {
     if (m_js.elb & s_jc_u3613m::EB_STDOWN &&
 	m_js.elt & s_jc_u3613m::EB_STDOWN &&
 	m_js.erb & s_jc_u3613m::EB_STDOWN &&
 	m_js.ert & s_jc_u3613m::EB_STDOWN) {
-      ui_force_ctrl_stop(pcm_box);
+      ui_force_ctrl_stop();
     }
   }
 }
@@ -607,13 +598,13 @@ void f_ui_manager::update_route(c_route_cfg_box * prc_box)
       owp.update_wps(iwp, wp);
       owp.enable(iwp);
       
-      waypoints[iwp] = Waypoint(wp.lat, wp.lon);
+      waypoints[iwp] = UIManagerMsg::Waypoint(wp.lat, wp.lon);
       iwp++;
     }
   
-  float ddiff, cdiff, xdiff;
-  m_ch_wp->get_diff(ddiff, cdiff, xdiff);
-  owp.set_next(m_ch_wp->get_next(), ddiff, cdiff, xdiff);
+  float ddiff, course, xdiff;
+  m_ch_wp->get_target_course(ddiff, course, xdiff);
+  owp.set_next(m_ch_wp->get_next(), ddiff, course, xdiff);
   
   if (obj_mouse_on.type == ot_wp){
     owp.set_focus(obj_mouse_on.handle);
@@ -677,7 +668,7 @@ void f_ui_manager::update_ais_objs()
       
       obj.get_pos_blh(lat, lon, alt);
       obj.get_vel_blh(cog, sog);
-      aisobjects[iobj] = AISObject(obj.get_mmsi(), lat, lon, cog, sog);
+      aisobjects[iobj] = UIManagerMsg::AISObject(obj.get_mmsi(), lat, lon, cog, sog);
     }
     iobj++;
   }
@@ -938,22 +929,21 @@ void f_ui_manager::handle_set_ctrl_mode()
     if(cmd.ival1 >= AutopilotMode_NONE || cmd.ival1 < 0)
       return;
     else {
-      m_ch_ap_inst->set_mode((AutopilotMode)cmd.ival1);
-      switch(m_ch_ap_inst->get_mode()){
+      ap_mode = (AutopilotMode)cmd.ival1;
+      switch(ap_mode){
       case AutopilotMode_STAY:
 	{
 	  long long t;
-	  double lat, lon;
-	  m_state->get_position(t, lat, lon);
-	  m_ch_ap_inst->set_stay_pos(lat, lon);
-	}
+	  m_state->get_position_ecef(t, xstay, ystay, zstay);
+	}	
+	break;
       default:
 	break;
       }       
     }
   }
 
-  m_inst.ctrl_src = (ControlSource) cmd.ival0;
+  ctrl_src = (ControlSource) cmd.ival0;
 }
 
 void f_ui_manager::handle_set_ctrl_value()
@@ -966,7 +956,7 @@ void f_ui_manager::handle_set_ctrl_value()
   // cmd.fval0 : rev_tgt or sog_tgt
   // cmd.fval1 : cog_tgt
 
-  switch(m_inst.ctrl_src){
+  switch(ctrl_src){
   case ControlSource_UI: // fval0,fval1-> m_eng_f,m_rud_f
     if(cmd.fval0 >= 0 && cmd.fval0 <= 255)
       m_eng_f = cmd.fval0;
@@ -974,7 +964,7 @@ void f_ui_manager::handle_set_ctrl_value()
       m_rud_f = cmd.fval1;
     break;
   case ControlSource_AP: // fval0,fval1-> rev_tgt or sog_tgt,cog_tgt
-    if(m_ch_ap_inst->get_mode() == AutopilotMode_STB_MAN){
+    if(ap_mode == AutopilotMode_STB_MAN){
       if(cmd.fval0 >= -rev_max && cmd.fval0 <= rev_max)
 	rev_tgt = cmd.fval0;
     }else{
@@ -996,7 +986,7 @@ void f_ui_manager::handle_set_ctrl_command()
   // cmd.ival0 : rev in {rev_fl_as .. rev_nf} or sog in {sog_fl_as .. sog_nf}
   // cmd.ival1 : cog in {cog_p20 .. cog_s20}
   
-  switch(m_inst.ctrl_src){
+  switch(ctrl_src){
   case ControlSource_UI: // fval0,fval1-> m_eng_f,m_rud_f
     if(cmd.ival0 >= 0 && cmd.ival0 < eng_undef)
       m_eng_f = eng_cmd_val[cmd.ival0];
@@ -1004,7 +994,7 @@ void f_ui_manager::handle_set_ctrl_command()
       m_rud_f = rud_cmd_val[cmd.ival1];
     break;
   case ControlSource_AP: // fval0,fval1-> rev_tgt or sog_tgt,cog_tgt
-    if(m_ch_ap_inst->get_mode() == AutopilotMode_STB_MAN){
+    if(ap_mode == AutopilotMode_STB_MAN){
       if(cmd.ival0 >= 0 && cmd.ival0 < rev_undef)
 	rev_tgt = rev_cmd_val[cmd.ival0];
     }else{
@@ -1317,70 +1307,20 @@ bool f_ui_manager::proc()
   float depth;
   m_state->get_depth(t, depth);
 
-
   float bar, temp_air, hmdr, dew, dir_wnd_t, wspd_mps;
   bar = temp_air = hmdr = dew = dir_wnd_t = wspd_mps = 0.0f;
   m_state->get_weather(t, bar, temp_air, hmdr, dew, dir_wnd_t, wspd_mps);
   
   c_view_mode_box * pvm_box =
     dynamic_cast<c_view_mode_box*>(uim.get_ui_box(c_aws_ui_box_manager::view_mode));
-  c_ctrl_mode_box * pcm_box = 
-    dynamic_cast<c_ctrl_mode_box*>(uim.get_ui_box(c_aws_ui_box_manager::ctrl_mode));
   c_map_cfg_box * pmc_box = 
     dynamic_cast<c_map_cfg_box*>(uim.get_ui_box(c_aws_ui_box_manager::map_cfg));
   c_route_cfg_box * prc_box =
     dynamic_cast<c_route_cfg_box*>(uim.get_ui_box(c_aws_ui_box_manager::route_cfg));
     
-  // process joypad inputs
-  if(m_js.id != -1){
-    m_js.set_btn();
-    m_js.set_stk();
-  }
-
-  if (m_js.estart & s_jc_u3613m::EB_EVUP)
-    bjs = !bjs;
-
-  js_force_ctrl_stop(pcm_box);
-
-  switch(m_inst.ctrl_src){
-  case ControlSource_UI:
-    handle_ctrl_crz();
-    cog_tgt = cog;
-    if(eng_cmd_val[eng_ds_ah] <= m_stat.eng_aws) // ahead
-      rev_tgt = rpm;
-    else if (eng_cmd_val[eng_ds_as] >=  m_stat.eng_aws) //astern
-      rev_tgt = -rpm;
-    break;
-  case ControlSource_AP:
-    switch(m_ch_ap_inst->get_mode()){
-    case AutopilotMode_WP:
-      ctrl_sog_tgt();
-      cog_tgt = cog;
-      if(eng_cmd_val[eng_ds_ah] <= m_stat.eng_aws) // ahead
-	rev_tgt = rpm;
-      else if (eng_cmd_val[eng_ds_as] >=  m_stat.eng_aws) //astern
-	rev_tgt = -rpm;
-      break;
-    case AutopilotMode_STB_MAN:
-      handle_ctrl_stb();
-      break;
-    }
-    // UI control values follow the ap's ones.
-    m_eng_f = m_stat.eng_aws; 
-    m_rud_f = m_stat.rud_aws;
-    break;
-  default:
-    break;
-  }
+  snd_ctrl_inst(Rown, xown, yown, zown, cog, rpm);
   
-  // m_inst to m_ch_ctrl_inst
-  snd_ctrl_inst();
-  
-  // m_ch_ctrl_stat to m_stat
   rcv_ctrl_stat();
-  
-  m_ch_ap_inst->set_tgt_sog(sog_tgt);
-  m_ch_ap_inst->set_tgt_cog_and_rev(cog_tgt, rev_tgt);
 
   // Window forcus is now at this window
   glfwMakeContextCurrent(pwin());
@@ -1398,10 +1338,10 @@ bool f_ui_manager::proc()
 			      lat, lon, xown, yown, zown, yaw);
   if (event_handled){
     clear_mouse_state(prc_box);
-    handle_updated_ui_box(pvm_box, pcm_box, pmc_box, prc_box);
+    handle_updated_ui_box(pvm_box,  pmc_box, prc_box);
   }
   else{
-    handle_base_mouse_event(pvm_box, pcm_box, pmc_box, prc_box);
+    handle_base_mouse_event(pvm_box,  pmc_box, prc_box);
   }
 
   command_handler();
@@ -1515,46 +1455,9 @@ bool f_ui_manager::proc()
     m_ch_radar_image->free_updates(get_time());
   }
 
-  // update ui state message
-  msg_builder.Clear();
-  
-
-  Control control(m_inst.ctrl_src,
-		  m_ch_ap_inst->get_mode(),
-		  m_eng_f, m_rud_f,
-		  cog_tgt, sog_tgt, rev_tgt);
-  Position position(lat, lon, alt);
-  Velocity velocity(cog, sog);
-  Attitude attitude(roll, pitch, yaw);
-  Engine engine(rpm, trim, teng, valt, frate, temp);
-  Weather weather(bar, temp_air, hmdr, dew, wspd_mps, dir_wnd_t);
-  Map map(map_range, bmap_center_free, Position((double)pt_map_center_blh.x, (double)pt_map_center_blh.y, 0.0));
-  
-  Radar radar((RadarState)m_ch_radar_state->get_state(),
-	      m_ch_radar_state->get_range(),
-	      m_ch_radar_state->get_gain(),
-	      (RadarControlState)m_ch_radar_state->get_gain_state(),
-	      m_ch_radar_state->get_rain(),
-	      (RadarControlState)m_ch_radar_state->get_rain_mode(),
-	      m_ch_radar_state->get_sea(),
-	      (RadarControlState)m_ch_radar_state->get_sea_mode(),
-	      m_ch_radar_state->get_interference_rejection(),
-	      m_ch_radar_state->get_scan_speed());
-  auto msg_loc = CreateUIManagerMsg(msg_builder,
-				    get_time(),
-				    &control,
-				    &position,
-				    &velocity,
-				    &attitude,
-				    &engine, 
-				    depth,
-				    &weather,
-				    &map,
-				    &radar,
-				    msg_builder.CreateVectorOfStructs(waypoints),
-				    msg_builder.CreateVectorOfStructs(aisobjects)
-				    );
-  msg_builder.Finish(msg_loc);
+  set_ui_message(lat, lon, alt, cog, sog, roll, pitch, yaw, rpm, trim, teng,
+		 valt, frate, temp, bar, temp_air, hmdr, dew, dir_wnd_t,
+		 wspd_mps, depth);
   
   // rendering graphics
   render_gl_objs(pvm_box);
@@ -1565,35 +1468,176 @@ bool f_ui_manager::proc()
   return true;
 }
 
-void f_ui_manager::snd_ctrl_inst()
+void f_ui_manager::snd_ctrl_inst(const double * Rown, const double xown,
+				 const double yown, const double zown,
+				 const float cog, const float rpm)
 {
-  if(m_ch_ctrl_inst){
-    m_ch_ctrl_inst->set(m_inst);
+  // process joypad inputs
+  if(m_js.id != -1){
+    m_js.set_btn();
+    m_js.set_stk();
   }
+
+  if (m_js.estart & s_jc_u3613m::EB_EVUP)
+    bjs = !bjs;
+
+  js_force_ctrl_stop();
+
+  switch(ctrl_src){
+  case ControlSource_UI:
+    handle_ctrl_crz();
+    cog_tgt = cog;
+    if(eng_cmd_val[eng_ds_ah] <= engine.value()) // ahead
+      rev_tgt = rpm;
+    else if (eng_cmd_val[eng_ds_as] >=  engine.value()) //astern
+      rev_tgt = -rpm;
+    break;
+  case ControlSource_AP:
+    switch(ap_mode){
+    case AutopilotMode_WP:
+      if(!m_ch_wp->is_finished()){
+	float d, xdiff;
+	m_ch_wp->lock();
+	m_ch_wp->get_target_course(d, cog_tgt, xdiff);
+	m_ch_wp->unlock();
+	ctrl_sog_tgt();      
+	set_ctrl_course();	
+      }else{
+	sog_tgt = 0.0;
+	set_ctrl_speed();
+      }      
+      if(eng_cmd_val[eng_ds_ah] <= engine.value()) // ahead
+	rev_tgt = rpm;
+      else if (eng_cmd_val[eng_ds_as] >=  engine.value()) //astern
+	rev_tgt = -rpm;
+      break;
+    case AutopilotMode_STAY:{
+      eceftowrld(Rown, xown, yown, zown, xstay, ystay, zstay,
+		 xrstay, yrstay, zrstay);
+      float d_stay = (float)(sqrt(xrstay * xrstay + yrstay * yrstay));      
+      cog_tgt = (float)(atan2(xrstay, yrstay) * 180. / PI);
+      if(cog_tgt != cog_tgt){
+	cog_tgt = 0.0f;
+      }
+      
+      if(d_stay < 15){
+	rev_tgt = 0;
+      }else if(d_stay < 30){
+	rev_tgt = 800;
+      }else if(d_stay < 100){
+	rev_tgt = (1500 - 800) * (d_stay - 30.) / (100.- 30.) + 800;
+      }else if(d_stay < 1000){
+	rev_tgt = (5000 - 1500) * (d_stay - 100) / (1000-100) + 1500;
+      }
+      set_ctrl_course();
+      set_ctrl_revolution();
+    }
+      break;
+    case AutopilotMode_STB_MAN:
+      handle_ctrl_stb();      
+      break;
+    }
+    // UI control values follow the ap's ones.
+    m_eng_f = engine.value(); 
+    m_rud_f = rudder.value();
+    break;
+  default:
+    break;
+  }  
 }
 
 void f_ui_manager::rcv_ctrl_stat()
 {
-  s_aws1_ctrl_stat stat;
-  if(m_ch_ctrl_stat){
-    m_ch_ctrl_stat->get(stat);
-  }else 
-    return;
-  m_stat.ctrl_src = stat.ctrl_src;
-  m_stat.rud = stat.rud;
-  m_stat.eng = stat.eng;
-  m_stat.rud_aws = stat.rud_aws;
-  m_stat.eng_aws = stat.eng_aws;
-   
-  m_stat.eng_max = stat.eng_max;
-  m_stat.eng_nuf = stat.eng_nuf;
-  m_stat.eng_nut = stat.eng_nut;
-  m_stat.eng_nub = stat.eng_nub;
-  m_stat.eng_min = stat.eng_min;
+  if(m_ch_ctrl_in){
+    while(1){
+      m_ch_ctrl_in->pop(buf_ctrl_in, sz_buf_ctrl_in);
+      if(sz_buf_ctrl_in == 0)
+	break;
+      auto data = Control::GetData(buf_ctrl_in);
+      switch(data->payload_type()){
+      case Control::Payload_Engine:
+	engine = *data->payload_as_Engine();
+	break;
+      case Control::Payload_Revolution:
+	revolution = *data->payload_as_Revolution();
+	break;
+      case Control::Payload_Speed:
+	speed = *data->payload_as_Speed();
+	break;
+      case Control::Payload_Rudder:
+	rudder = *data->payload_as_Rudder();
+	break;
+      case Control::Payload_Course:
+	course = *data->payload_as_Course();
+	break;
+      case Control::Payload_Config:
+	config = *data->payload_as_Config();
+	if(m_ch_ctrl_out) m_ch_ctrl_out->push(buf_ctrl_in, sz_buf_ctrl_in);
+	break;
+      default:
+	break;
+      }
+    }    
+  }  
+}
 
-  m_stat.rud_max = stat.rud_max;
-  m_stat.rud_nut = stat.rud_nut;
-  m_stat.rud_min = stat.rud_min;
+
+void f_ui_manager::set_ui_message(const double lat, const double lon,
+				  const float alt, const float cog,
+				  const float sog, const float roll,
+				  const float pitch, const float yaw,
+				  const float rpm, const unsigned char trim,
+				  const unsigned int teng, const float valt,
+				  const float frate, const float temp,
+				  const float bar, const float temp_air,
+				  const float hmdr, const float dew,
+				  const float dir_wnd_t, const float wspd_mps,
+				  const float depth)
+{
+  // update ui state message
+  msg_builder.Clear();
+  
+  UIManagerMsg::Control control(ctrl_src,
+				ap_mode,
+				m_eng_f, m_rud_f,
+				cog_tgt, sog_tgt, rev_tgt);
+  UIManagerMsg::Position position(lat, lon, alt);
+  UIManagerMsg::Velocity velocity(cog, sog);
+  UIManagerMsg::Attitude attitude(roll, pitch, yaw);
+  UIManagerMsg::Engine engine(rpm, trim, teng, valt, frate, temp);
+  UIManagerMsg::Weather weather(bar, temp_air, hmdr, dew, wspd_mps, dir_wnd_t);
+  UIManagerMsg::Map map(map_range, bmap_center_free,
+			UIManagerMsg::Position((double)pt_map_center_blh.x,
+					       (double)pt_map_center_blh.y,
+					       0.0)
+			);
+  Radar radar = (m_ch_radar_state ?
+		 Radar((RadarState)m_ch_radar_state->get_state(),
+		       m_ch_radar_state->get_range(),
+		       m_ch_radar_state->get_gain(),
+		       (RadarControlState)m_ch_radar_state->get_gain_state(),
+		       m_ch_radar_state->get_rain(),
+		       (RadarControlState)m_ch_radar_state->get_rain_mode(),
+		       m_ch_radar_state->get_sea(),
+		       (RadarControlState)m_ch_radar_state->get_sea_mode(),
+		       m_ch_radar_state->get_interference_rejection(),
+		       m_ch_radar_state->get_scan_speed()) : Radar());
+  
+  auto msg_loc = UIManagerMsg::CreateUIManagerMsg(msg_builder,
+						  get_time(),
+						  &control,
+						  &position,
+						  &velocity,
+						  &attitude,
+						  &engine, 
+						  depth,
+						  &weather,
+						  &map,
+						  &radar,
+						  msg_builder.CreateVectorOfStructs(waypoints),
+						  msg_builder.CreateVectorOfStructs(aisobjects)
+						  );
+  msg_builder.Finish(msg_loc);  
 }
 
 void f_ui_manager::ctrl_cog_tgt()
@@ -1602,6 +1646,8 @@ void f_ui_manager::ctrl_cog_tgt()
     cog_tgt += (float)(m_js.lr2 * (255. / 90.));
     cog_tgt = (float)(cog_tgt < 0 ? cog_tgt + 360.0 : (cog_tgt >= 360.0 ? cog_tgt - 360.0 : cog_tgt));
   }
+
+  set_ctrl_course();
 }
 
 void f_ui_manager::ctrl_sog_tgt()
@@ -1610,6 +1656,8 @@ void f_ui_manager::ctrl_sog_tgt()
     sog_tgt -= (float)(m_js.ud1 * (sog_max / 90.));
     sog_tgt = max(min(sog_tgt, sog_max), 0.f);
   }
+
+  set_ctrl_speed();
 }
 
 void f_ui_manager::ctrl_rev_tgt()
@@ -1618,6 +1666,8 @@ void f_ui_manager::ctrl_rev_tgt()
     rev_tgt -= (float)( m_js.ud1 * (rev_max / 90.));
     rev_tgt = (float) max(min(rev_tgt, rev_max), -rev_max);
   }
+  
+  set_ctrl_revolution();
 }
 
 
@@ -1677,9 +1727,8 @@ void f_ui_manager::handle_ctrl_crz()
       m_rud_f = rud_cmd_val[rud_cm];
   }
   
-  m_inst.tcur = get_time();
-  m_inst.rud_aws = (unsigned char)m_rud_f;
-  m_inst.eng_aws = (unsigned char)m_eng_f;
+  set_ctrl_engine();
+  set_ctrl_rudder();  
 }
 
 void f_ui_manager::handle_ctrl_ctl()
@@ -1696,25 +1745,14 @@ void f_ui_manager::handle_ctrl_ctl()
     m_eng_f = min((float)255.0, m_eng_f);
     m_eng_f = max((float)0.0, m_eng_f);    
   }
-  m_inst.tcur = get_time();
-  m_inst.rud_aws = (unsigned char)m_rud_f;
-  m_inst.eng_aws = (unsigned char)m_eng_f;
+  set_ctrl_engine();
+  set_ctrl_rudder();    
 }
 
 void f_ui_manager::handle_ctrl_stb()
 {
   ctrl_cog_tgt();
   ctrl_rev_tgt();
-}
-
-
-void f_ui_manager::handle_ctrl_csr()
-{
-  float th_mouse = (float)(atan2(pt_mouse.y, pt_mouse.x) * 180.0 / PI);
-  float d_mouse = (float)sqrt(pt_mouse_enu.x * pt_mouse_enu.x + pt_mouse_enu.y + pt_mouse_enu.y);
-  
-  m_ch_ap_inst->set_csr_pos(pt_mouse_blh.x, pt_mouse_blh.y, pt_mouse_enu.x, pt_mouse_enu.y, d_mouse, th_mouse);
-  ctrl_sog_tgt();
 }
 
 
@@ -1870,20 +1908,20 @@ void f_ui_manager::det_obj_collision()
   }
 }
 
-void f_ui_manager::handle_base_mouse_event(c_view_mode_box * pvm_box, c_ctrl_mode_box * pcm_box,
+void f_ui_manager::handle_base_mouse_event(c_view_mode_box * pvm_box, 
 					   c_map_cfg_box * pmc_box, c_route_cfg_box * prc_box)
 {
   if (mouse_button == GLFW_MOUSE_BUTTON_LEFT){
     if (mouse_action == GLFW_PRESS){
-      handle_mouse_lbtn_push(pvm_box, pcm_box, pmc_box, prc_box);
+      handle_mouse_lbtn_push(pvm_box,  pmc_box, prc_box);
     }
     else if (mouse_action == GLFW_RELEASE){
-      handle_mouse_lbtn_release(pvm_box, pcm_box, pmc_box, prc_box);
+      handle_mouse_lbtn_release(pvm_box, pmc_box, prc_box);
     }
     clear_mouse_event();
   }
   else{
-    handle_mouse_mv(pvm_box, pcm_box, pmc_box, prc_box);
+    handle_mouse_mv(pvm_box, pmc_box, prc_box);
   }
   
   if (obj_mouse_on.type == ot_nul){
@@ -1895,7 +1933,7 @@ void f_ui_manager::handle_base_mouse_event(c_view_mode_box * pvm_box, c_ctrl_mod
   }
 }
 
-void f_ui_manager::handle_mouse_lbtn_push(c_view_mode_box * pvm_box, c_ctrl_mode_box * pcm_box,
+void f_ui_manager::handle_mouse_lbtn_push(c_view_mode_box * pvm_box, 
 					  c_map_cfg_box * pmc_box, c_route_cfg_box * prc_box)
 {
   if (handle_btn_pushed())
@@ -1911,7 +1949,6 @@ void f_ui_manager::handle_mouse_lbtn_push(c_view_mode_box * pvm_box, c_ctrl_mode
 }
 
 void f_ui_manager::handle_mouse_lbtn_release(c_view_mode_box * pvm_box,
-					     c_ctrl_mode_box * pcm_box,
 					     c_map_cfg_box * pmc_box,
 					     c_route_cfg_box * prc_box)
 {
@@ -1941,7 +1978,6 @@ void f_ui_manager::handle_mouse_lbtn_release(c_view_mode_box * pvm_box,
 }
 
 void f_ui_manager::handle_mouse_mv(c_view_mode_box * pvm_box,
-				   c_ctrl_mode_box * pcm_box,
 				   c_map_cfg_box * pmc_box,
 				   c_route_cfg_box * prc_box)
 {
@@ -1967,7 +2003,6 @@ void f_ui_manager::handle_mouse_drag(c_view_mode_box * pvm_box, s_obj & obj_tmp)
 }
 
 void f_ui_manager::handle_updated_ui_box(c_view_mode_box * pvm_box,
-					 c_ctrl_mode_box * pcm_box,
 					 c_map_cfg_box * pmc_box,
 					 c_route_cfg_box * prc_box) 
 {
@@ -1976,14 +2011,13 @@ void f_ui_manager::handle_updated_ui_box(c_view_mode_box * pvm_box,
   case c_aws_ui_box_manager::view_mode:
     update_view_mode_box(pvm_box);
     break;
-  case c_aws_ui_box_manager::ctrl_mode:
-    //    update_ctrl_mode_box(pcm_box);
-    break;
   case c_aws_ui_box_manager::map_cfg:
     update_map_cfg_box(pmc_box);
     break;
   case c_aws_ui_box_manager::route_cfg:
     update_route_cfg_box(prc_box, mouse_state_new);
+    break;
+  default:
     break;
   }
   
@@ -2010,43 +2044,6 @@ void f_ui_manager::update_view_mode_box(c_view_mode_box * pvm_box)
   }  
 }
 
-void f_ui_manager::update_ctrl_mode_box(c_ctrl_mode_box * pcm_box)
-{	
-  switch (pcm_box->get_mode())
-    {
-    case c_ctrl_mode_box::crz:
-      m_inst.ctrl_src = ControlSource_UI;
-      break;
-    case c_ctrl_mode_box::csr:
-      m_inst.ctrl_src = ControlSource_AP;
-      m_ch_ap_inst->set_mode(AutopilotMode_CURSOR);
-      break;
-    case c_ctrl_mode_box::ctl:
-      m_inst.ctrl_src = ControlSource_UI;
-      break;
-    case c_ctrl_mode_box::sty:
-      m_inst.ctrl_src = ControlSource_AP;
-      m_ch_ap_inst->set_mode(AutopilotMode_STAY);
-      {
-	long long t; 
-	double lat, lon;
-	m_state->get_position(t, lat, lon);
-	m_ch_ap_inst->set_stay_pos(lat, lon);
-      }
-      break;
-    case c_ctrl_mode_box::fwp:
-      m_inst.ctrl_src = ControlSource_AP;
-      m_ch_ap_inst->set_mode(AutopilotMode_WP);
-      break;
-    case c_ctrl_mode_box::ftg:
-      m_inst.ctrl_src = ControlSource_AP;
-      m_ch_ap_inst->set_mode(AutopilotMode_FLW_TGT);
-      break;
-    case c_ctrl_mode_box::stb:
-      m_inst.ctrl_src = ControlSource_AP;
-      m_ch_ap_inst->set_mode(AutopilotMode_STB_MAN);
-    }
-}
 
 void f_ui_manager::update_map_cfg_box(c_map_cfg_box * pmc_box)
 {
@@ -2225,16 +2222,14 @@ void f_ui_manager::update_ui_params(c_view_mode_box * pvm_box,
     eceftowrld(Rmap, pt_map_center_ecef.x,
 	       pt_map_center_ecef.y, pt_map_center_ecef.z,
 	       xown, yown, zown, rx, ry, rz);
-    if(m_ch_ap_inst->get_mode() == AutopilotMode_STAY){
-      m_ch_ap_inst->get_stay_pos_rel(rxs, rys, d, dir);
-      rzs = 0;
-    }else{
-      rxs = 0;
-      rys = 0;
-      rzs = 0;
-    }
 
-    own_ship.set_param(rx, ry, rz, rxs, rys, rzs, yaw, vx, vy, cog_tgt);
+    if(ctrl_src == ControlSource_AP && ap_mode == AutopilotMode_STAY){
+      own_ship.set_param(rx, ry, rz, xrstay, yrstay, zrstay,
+			 yaw, vx, vy, cog_tgt);
+    }else{
+      own_ship.set_param(rx, ry, rz, 0, 0, 0,
+			 yaw, vx, vy, cog_tgt);      
+    }
     
     float wx = (float)(meter_per_pix * (m_sz_win.width >> 1)),
       wy = (float)(meter_per_pix * (m_sz_win.height >> 1));
@@ -2259,9 +2254,9 @@ void f_ui_manager::update_indicator(const float cog, const float sog,
   float yawf = (float)(yaw * (PI / 180.f));
   const char *str_steng1 = ((steng1 >= 0 && steng1 <= NMEA2000::EngineStatus1_MAX) ? strStatEng1[steng1] : NULL);
   const char *str_steng2 = ((steng2 >= 0 && steng2 <= NMEA2000::EngineStatus2_MAX) ? strStatEng2[steng2] : NULL);
-  ind.set_param( m_time_str, m_stat.eng_aws, rpm, rev_tgt, trim, poil,
+  ind.set_param( m_time_str, engine.value(), rpm, rev_tgt, trim, poil,
 		 toil, temp, valt, frate, teng, pclnt, pfl, ld, tq,
-		 str_steng1, str_steng2, m_stat.rud_aws,
+		 str_steng1, str_steng2, rudder.value(),
 		 cogf, (float)(cog_tgt * (PI/180.f)), sog, sog_tgt, yawf,
 		 (float)(pitch* (PI / 180.f)), (float)(-roll* (PI / 180.f)),
 		 depth);

@@ -30,7 +30,7 @@
 #include "ch_obj.hpp"
 #include "ch_radar.hpp"
 #include "ui_manager_msg_generated.h"
-using namespace Filter::UIManagerMsg;
+using namespace Filter;
 
 
 #define MAX_RT_FILES 10
@@ -63,14 +63,96 @@ private:
   ch_state * m_state;			// required
   ch_eng_state * m_engstate;            // optional
   ch_aws1_sys * m_ch_sys;		// is not used
-  ch_aws1_ctrl_inst * m_ch_ctrl_inst;	// optional
-  ch_aws1_ctrl_stat * m_ch_ctrl_stat;   // optional
+  // ch_aws1* below will be removed later. the replacement is ch_ctrl_data.
+
+  ch_ctrl_data * m_ch_ctrl_out;         // control data out (->autopilot->control)
+  ch_ctrl_data * m_ch_ctrl_in;          // control data in (<-autopilot<-control)
+
+  size_t sz_buf_ctrl_in;
+  unsigned char buf_ctrl_in[64];  
+  
+  Control::Engine engine;
+  Control::Revolution revolution;
+  Control::Speed speed;
+  Control::Rudder rudder;
+  Control::Course course;
+  Control::Config config;
+  AutopilotMode ap_mode;
+  ControlSource ctrl_src;
+  
+  flatbuffers::FlatBufferBuilder ctrl_builder;
+  
+  void set_ctrl_engine()
+  {
+    unsigned char new_eng = (unsigned char)m_eng_f;    
+    if(engine.value() != new_eng){
+      ctrl_builder.Clear();
+      auto payload = ctrl_builder.CreateStruct(Control::Engine((unsigned char)m_eng_f));
+      auto data = CreateData(ctrl_builder, get_time(),
+			     Control::Payload_Engine, payload.Union());
+      ctrl_builder.Finish(data);
+      m_ch_ctrl_out->push(ctrl_builder.GetBufferPointer(), ctrl_builder.GetSize());
+    }    
+  }
+  
+  void set_ctrl_rudder()
+  {    
+    unsigned char new_rud = (unsigned char)m_rud_f;   
+    if(rudder.value() != new_rud){
+      ctrl_builder.Clear();
+      auto payload = ctrl_builder.CreateStruct(Control::Rudder((unsigned char)m_rud_f));
+      auto data = CreateData(ctrl_builder, get_time(),
+			     Control::Payload_Rudder, payload.Union());
+      ctrl_builder.Finish(data);
+      m_ch_ctrl_out->push(ctrl_builder.GetBufferPointer(), ctrl_builder.GetSize());
+    }      
+  }
+  
+  void set_ctrl_revolution()
+  {
+    if(revolution.value() != rev_tgt){
+      ctrl_builder.Clear();
+      auto payload = ctrl_builder.CreateStruct(Control::Revolution(rev_tgt));
+      auto data = CreateData(ctrl_builder, get_time(),
+			     Control::Payload_Revolution,
+			     payload.Union());
+      ctrl_builder.Finish(data);
+      m_ch_ctrl_out->push(ctrl_builder.GetBufferPointer(), ctrl_builder.GetSize());
+      
+    }
+  }
+  
+  void set_ctrl_speed()
+  {
+    if(speed.value() != sog_tgt){
+      ctrl_builder.Clear();
+      auto payload = ctrl_builder.CreateStruct(Control::Speed(sog_tgt));
+      auto data = CreateData(ctrl_builder, get_time(),
+			     Control::Payload_Speed,
+			     payload.Union());
+      ctrl_builder.Finish(data);
+      m_ch_ctrl_out->push(ctrl_builder.GetBufferPointer(), ctrl_builder.GetSize());      
+    }    
+  }
+
+  void set_ctrl_course()
+  {
+    if(course.value() != cog_tgt){
+      ctrl_builder.Clear();
+      auto payload = ctrl_builder.CreateStruct(Control::Course(cog_tgt));
+      auto data = CreateData(ctrl_builder, get_time(),
+			     Control::Payload_Course,
+			     payload.Union());
+      ctrl_builder.Finish(data);
+      m_ch_ctrl_out->push(ctrl_builder.GetBufferPointer(), ctrl_builder.GetSize());
+    }
+  }
+    
   ch_wp * m_ch_wp;	 	        // optional,
                                         //ref. update_route_cfg_box(),
                                         //     update_route(), add_waypoint()
   ch_map * m_ch_map;			// optional, ref. update_map()
   ch_ais_obj * m_ch_ais_obj;		// optional, ref. update_ais_obj()
-  ch_aws1_ap_inst * m_ch_ap_inst;	// optional,
                                         // ref. update_ctrl_mode_box(),
                                         //      handle_ctrl_csr()
   ch_radar_image * m_ch_radar_image;    // radar image channel
@@ -141,12 +223,10 @@ private:
   
   // check update in 4 ui boxes and call proper update_*_box function below.
   void handle_updated_ui_box(c_view_mode_box * pvm_box,
-			     c_ctrl_mode_box * pcm_box,
 			     c_map_cfg_box * pmc_box,
 			     c_route_cfg_box * prc_box);
  
   void update_view_mode_box(c_view_mode_box * pvm_box);
-  void update_ctrl_mode_box(c_ctrl_mode_box * pcm_box);
   void update_map_cfg_box(c_map_cfg_box * pmc_box);
   void update_route_cfg_box(c_route_cfg_box * prc_box,
 			    e_mouse_state mouse_state_new);
@@ -206,16 +286,19 @@ private:
   void update_button(c_view_mode_box * pvm_box);
 
   ////////////////////////////////////////// Control instruction and status
-  // Control source is categorized into two: one is manual, another is autopilot.
-  // Manual control is done via joystic by instructing the control value to the m_ch_ctrl_inst channel,
-  // and autopilot control is done by instructing the autopilot command to the m_ch_ap_inst channel.
+  void snd_ctrl_inst(const double * Rown, const double xown,
+		     const double yown, const double zow,
+		     const float cog, const float rpm); 
+  void rcv_ctrl_stat(); 
 
-  s_aws1_ctrl_inst m_inst; // the control instruction value
-  void snd_ctrl_inst(); // send m_inst to m_ch_ctrl_inst
-
-  s_aws1_ctrl_stat m_stat; // the control state value 
-  void rcv_ctrl_stat(); // recieve m_stat from m_ch_ctrl_stat.
-
+  void set_ui_message(const double lat, const double lon, const float alt,
+		      const float cog, const float sog, const float roll,
+		      const float pitch, const float yaw, const float rpm,
+		      const unsigned char trim, const unsigned int teng,
+		      const float valt, const float frate, const float temp,
+		      const float bar, const float temp_air, const float hmdr,
+		      const float dew, const float dir_wnd_t,
+		      const float wspd_mps, const float depth);
   // AWS1's manual control mode, crz: Cruise mode (for usual crusing), ctl: Control mode (for precise control), csr: Cursor mode (AWS1 follows mouse cursor)
 
   enum e_eng_cmd{
@@ -261,11 +344,11 @@ private:
   float sog_max, rev_max;
   float cog_tgt, sog_tgt, rev_tgt;
   
+  double xstay, ystay, zstay, xrstay, yrstay, zrstay;
+  
   float m_rud_f, m_eng_f;
   void handle_ctrl_crz(); // cruise mode: sticks are used to increase/decrease engine throttle and rudder angle 
   void handle_ctrl_ctl(); // control mode: positions of sticks are the throttle values. 
-  void handle_ctrl_csr(); // cursor mode: follows cursor position 
-
   void handle_ctrl_stb(); // stabilized mode: instruct cog and rpm
 
   void ctrl_cog_tgt();
@@ -299,20 +382,16 @@ private:
   // these event handlers are called when the mouse event isnot handled in
   // ui boxes. 
   void handle_base_mouse_event(c_view_mode_box * pvm_box,
-			       c_ctrl_mode_box * pcm_box,
 			       c_map_cfg_box * pmc_box,
 			       c_route_cfg_box * prc_box);
   
   void handle_mouse_lbtn_push(c_view_mode_box * pvm_box,
-			      c_ctrl_mode_box * pcm_box,
 			      c_map_cfg_box * pmc_box,
 			      c_route_cfg_box * prc_box);
   void handle_mouse_lbtn_release(c_view_mode_box * pvm_box,
-				 c_ctrl_mode_box * pcm_box,
 				 c_map_cfg_box * pmc_box,
 				 c_route_cfg_box * prc_box);
   void handle_mouse_mv(c_view_mode_box * pvm_box,
-		       c_ctrl_mode_box * pcm_box,
 		       c_map_cfg_box * pmc_box,
 		       c_route_cfg_box * prc_box);
   void handle_mouse_drag(c_view_mode_box * pvm_box, s_obj & obj_tmp);
@@ -428,8 +507,8 @@ private:
 
 
   flatbuffers::FlatBufferBuilder msg_builder;
-  vector<Waypoint> waypoints;
-  vector<AISObject> aisobjects;
+  vector<UIManagerMsg::Waypoint> waypoints;
+  vector<UIManagerMsg::AISObject> aisobjects;
 public:
   f_ui_manager(const char * name);
   virtual ~f_ui_manager();
@@ -439,8 +518,8 @@ public:
   virtual bool proc();
 
   // If LT+LB+RT+RB is detected, the system forces the controls to be nutral state. Called by default.
-  void ui_force_ctrl_stop(c_ctrl_mode_box * pcm_box);
-  void js_force_ctrl_stop(c_ctrl_mode_box * pcm_box);
+  void ui_force_ctrl_stop();
+  void js_force_ctrl_stop();
 
   virtual const char * get_msg()
   {

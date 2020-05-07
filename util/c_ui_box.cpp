@@ -150,7 +150,6 @@ bool c_aws_ui_box_manager::init(c_gl_2d_obj * _porect, c_gl_2d_obj * _potri,
   pboxes.resize(4, NULL);
  
   pboxes[view_mode] = ((c_aws_ui_box*) new c_view_mode_box());
-  pboxes[ctrl_mode] = ((c_aws_ui_box*) new c_ctrl_mode_box());
   pboxes[map_cfg] = ((c_aws_ui_box*) new c_map_cfg_box());
   pboxes[route_cfg] = ((c_aws_ui_box*) new c_route_cfg_box());
 
@@ -161,8 +160,6 @@ bool c_aws_ui_box_manager::init(c_gl_2d_obj * _porect, c_gl_2d_obj * _potri,
   // view_mode box and ctrl_mode box are placed at the left top side.
   y = (float)(ymax - pboxes[view_mode]->get_box_size(sz_font).y);
   pboxes[view_mode]->init(clr, bkgclr, sz_font, sz_screen, y, true);
-  y -= pboxes[ctrl_mode]->get_box_size(sz_font).y;
-  pboxes[ctrl_mode]->init(clr, bkgclr, sz_font, sz_screen, y, true);
 
   // map_cfg box and route_cfg box are placed at the right top side.
   y = (float)(ymax - pboxes[map_cfg]->get_box_size(sz_font).y);
