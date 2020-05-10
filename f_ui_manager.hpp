@@ -222,14 +222,9 @@ private:
   c_aws_ui_box_manager uim; // manages four ui-boxes.
   
   // check update in 4 ui boxes and call proper update_*_box function below.
-  void handle_updated_ui_box(c_view_mode_box * pvm_box,
-			     c_map_cfg_box * pmc_box,
-			     c_route_cfg_box * prc_box);
+  void handle_updated_ui_box(c_view_mode_box * pvm_box);
  
   void update_view_mode_box(c_view_mode_box * pvm_box);
-  void update_map_cfg_box(c_map_cfg_box * pmc_box);
-  void update_route_cfg_box(c_route_cfg_box * prc_box,
-			    e_mouse_state mouse_state_new);
   
   // updating own_ship appearance for map mode, and 3d projection matrix
   // for fpv mode.
@@ -270,7 +265,7 @@ private:
   int num_max_ais;	           // maximum number of ais objects ui can draw.
 
   void update_ais_objs();
-  void update_route(c_route_cfg_box * prc_box);
+  void update_route();
 
   c_own_ship own_ship;             // own ship object
   c_cursor ocsr;		   // cursor 
@@ -381,19 +376,12 @@ private:
 
   // these event handlers are called when the mouse event isnot handled in
   // ui boxes. 
-  void handle_base_mouse_event(c_view_mode_box * pvm_box,
-			       c_map_cfg_box * pmc_box,
-			       c_route_cfg_box * prc_box);
+  void handle_base_mouse_event(c_view_mode_box * pvm_box);
+
   
-  void handle_mouse_lbtn_push(c_view_mode_box * pvm_box,
-			      c_map_cfg_box * pmc_box,
-			      c_route_cfg_box * prc_box);
-  void handle_mouse_lbtn_release(c_view_mode_box * pvm_box,
-				 c_map_cfg_box * pmc_box,
-				 c_route_cfg_box * prc_box);
-  void handle_mouse_mv(c_view_mode_box * pvm_box,
-		       c_map_cfg_box * pmc_box,
-		       c_route_cfg_box * prc_box);
+  void handle_mouse_lbtn_push(c_view_mode_box * pvm_box);
+  void handle_mouse_lbtn_release(c_view_mode_box * pvm_box);
+  void handle_mouse_mv(c_view_mode_box * pvm_box);
   void handle_mouse_drag(c_view_mode_box * pvm_box, s_obj & obj_tmp);
   
   void clear_mouse_event()
@@ -403,15 +391,6 @@ private:
     mouse_mods = -1;
   }
 
-  void clear_mouse_state(c_route_cfg_box * prc_box)
-  {
-    if (mouse_state == ms_add_wp) {
-      prc_box->command_processed(c_route_cfg_box::wp_add);
-    }
-    mouse_state = ms_normal;
-  }
-  
-  void add_waypoint(c_route_cfg_box * prc_box);
   void drag_waypoint();
   void drag_cam_dir();
   void drag_map();

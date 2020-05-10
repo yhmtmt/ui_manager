@@ -571,7 +571,7 @@ void f_ui_manager::print_screen()
   }
 }
 
-void f_ui_manager::update_route(c_route_cfg_box * prc_box)
+void f_ui_manager::update_route()
 {
   if (!m_ch_wp)
     return;
@@ -610,10 +610,6 @@ void f_ui_manager::update_route(c_route_cfg_box * prc_box)
     owp.set_focus(obj_mouse_on.handle);
     if (obj_mouse_on.handle != m_ch_wp->get_focus()){
       m_ch_wp->set_focus(obj_mouse_on.handle);
-      unsigned int _wp, _spd, _rt;
-      prc_box->get_params(_wp, _spd, _rt);
-      _wp = obj_mouse_on.handle;
-      prc_box->set_params(_wp, _spd, _rt);
     }
     obj_mouse_on.type = ot_nul;
     obj_mouse_on.handle = -1;
@@ -1313,10 +1309,6 @@ bool f_ui_manager::proc()
   
   c_view_mode_box * pvm_box =
     dynamic_cast<c_view_mode_box*>(uim.get_ui_box(c_aws_ui_box_manager::view_mode));
-  c_map_cfg_box * pmc_box = 
-    dynamic_cast<c_map_cfg_box*>(uim.get_ui_box(c_aws_ui_box_manager::map_cfg));
-  c_route_cfg_box * prc_box =
-    dynamic_cast<c_route_cfg_box*>(uim.get_ui_box(c_aws_ui_box_manager::route_cfg));
     
   snd_ctrl_inst(Rown, xown, yown, zown, cog, rpm);
   
@@ -1337,11 +1329,10 @@ bool f_ui_manager::proc()
   calc_mouse_enu_and_ecef_pos(pvm_box->get_mode(), Rown,
 			      lat, lon, xown, yown, zown, yaw);
   if (event_handled){
-    clear_mouse_state(prc_box);
-    handle_updated_ui_box(pvm_box,  pmc_box, prc_box);
+    handle_updated_ui_box(pvm_box);
   }
   else{
-    handle_base_mouse_event(pvm_box,  pmc_box, prc_box);
+    handle_base_mouse_event(pvm_box);
   }
 
   command_handler();
@@ -1356,7 +1347,7 @@ bool f_ui_manager::proc()
 		   tq, steng1, steng2, depth);
  
   // update route object
-  update_route(prc_box);
+  update_route();
   
   // update ais object
   update_ais_objs();
@@ -1825,20 +1816,6 @@ void f_ui_manager::calc_mouse_enu_and_ecef_pos(
     }
 }
 
-void f_ui_manager::add_waypoint(c_route_cfg_box * prc_box)
-{
-  unsigned int rt, spd, wp;
-  prc_box->get_params(wp, spd, rt);
-  // set current cursor position as the new waypoint
-  if (!m_ch_wp){
-    cerr << "No waypoint channel is connected to " << m_name << endl;
-    return;
-  }
-  
-  m_ch_wp->lock();
-  m_ch_wp->ins(pt_mouse_blh.x, pt_mouse_blh.y, 10.0, (float)spd);
-  m_ch_wp->unlock();
-}
 
 void f_ui_manager::drag_waypoint()
 {
@@ -1908,20 +1885,19 @@ void f_ui_manager::det_obj_collision()
   }
 }
 
-void f_ui_manager::handle_base_mouse_event(c_view_mode_box * pvm_box, 
-					   c_map_cfg_box * pmc_box, c_route_cfg_box * prc_box)
+void f_ui_manager::handle_base_mouse_event(c_view_mode_box * pvm_box)
 {
   if (mouse_button == GLFW_MOUSE_BUTTON_LEFT){
     if (mouse_action == GLFW_PRESS){
-      handle_mouse_lbtn_push(pvm_box,  pmc_box, prc_box);
+      handle_mouse_lbtn_push(pvm_box);
     }
     else if (mouse_action == GLFW_RELEASE){
-      handle_mouse_lbtn_release(pvm_box, pmc_box, prc_box);
+      handle_mouse_lbtn_release(pvm_box);
     }
     clear_mouse_event();
   }
   else{
-    handle_mouse_mv(pvm_box, pmc_box, prc_box);
+    handle_mouse_mv(pvm_box);
   }
   
   if (obj_mouse_on.type == ot_nul){
@@ -1933,8 +1909,7 @@ void f_ui_manager::handle_base_mouse_event(c_view_mode_box * pvm_box,
   }
 }
 
-void f_ui_manager::handle_mouse_lbtn_push(c_view_mode_box * pvm_box, 
-					  c_map_cfg_box * pmc_box, c_route_cfg_box * prc_box)
+void f_ui_manager::handle_mouse_lbtn_push(c_view_mode_box * pvm_box)
 {
   if (handle_btn_pushed())
     return;
@@ -1948,9 +1923,7 @@ void f_ui_manager::handle_mouse_lbtn_push(c_view_mode_box * pvm_box,
   }
 }
 
-void f_ui_manager::handle_mouse_lbtn_release(c_view_mode_box * pvm_box,
-					     c_map_cfg_box * pmc_box,
-					     c_route_cfg_box * prc_box)
+void f_ui_manager::handle_mouse_lbtn_release(c_view_mode_box * pvm_box)
 {
   if (handle_btn_released())
     return;
@@ -1958,13 +1931,6 @@ void f_ui_manager::handle_mouse_lbtn_release(c_view_mode_box * pvm_box,
   s_obj obj_tmp = obj_mouse_on;
   det_obj_collision();
   switch (mouse_state){
-  case ms_add_wp:
-    if (obj_tmp.type == ot_nul && obj_mouse_on.type == ot_nul)
-      {
-	add_waypoint(prc_box);
-      }
-    prc_box->command_processed(c_route_cfg_box::wp_add);
-    break;
   case ms_drag:   
     handle_mouse_drag(pvm_box, obj_tmp);
     dir_cam_hdg += dir_cam_hdg_drag;
@@ -1973,13 +1939,9 @@ void f_ui_manager::handle_mouse_lbtn_release(c_view_mode_box * pvm_box,
   case ms_normal:
     break;
   }
-
-  clear_mouse_state(prc_box);
 }
 
-void f_ui_manager::handle_mouse_mv(c_view_mode_box * pvm_box,
-				   c_map_cfg_box * pmc_box,
-				   c_route_cfg_box * prc_box)
+void f_ui_manager::handle_mouse_mv(c_view_mode_box * pvm_box)
 {
   switch (mouse_state){
   case ms_drag:
@@ -2002,20 +1964,12 @@ void f_ui_manager::handle_mouse_drag(c_view_mode_box * pvm_box, s_obj & obj_tmp)
   }
 }
 
-void f_ui_manager::handle_updated_ui_box(c_view_mode_box * pvm_box,
-					 c_map_cfg_box * pmc_box,
-					 c_route_cfg_box * prc_box) 
+void f_ui_manager::handle_updated_ui_box(c_view_mode_box * pvm_box) 
 {
   e_mouse_state mouse_state_new = ms_normal;
   switch (uim.get_box_updated()){
   case c_aws_ui_box_manager::view_mode:
     update_view_mode_box(pvm_box);
-    break;
-  case c_aws_ui_box_manager::map_cfg:
-    update_map_cfg_box(pmc_box);
-    break;
-  case c_aws_ui_box_manager::route_cfg:
-    update_route_cfg_box(prc_box, mouse_state_new);
     break;
   default:
     break;
@@ -2045,148 +1999,12 @@ void f_ui_manager::update_view_mode_box(c_view_mode_box * pvm_box)
 }
 
 
-void f_ui_manager::update_map_cfg_box(c_map_cfg_box * pmc_box)
-{
-  {
-    float fmap_range = (float)map_range;
-    pmc_box->get_params(fmap_range, visible_obj);
-    map_range = (unsigned int)fmap_range;
-  }
-  switch (pmc_box->get_command())
-    {
-    case c_map_cfg_box::range_up:
-      if (map_range < 10000000) {
-	map_range += map_range_base;
-
-	if (map_range == map_range_base * 10)
-	  map_range_base *= 10;
-
-	recalc_range();
-	bupdate_map = true;
-      }
-      break;
-    case c_map_cfg_box::range_down:
-      if (map_range > 100) {
-	if (map_range_base == map_range)
-	  map_range_base /= 10;
-
-	map_range -= map_range_base;
-	recalc_range();
-	bupdate_map = true;
-      }
-      break;
-    case c_map_cfg_box::wp:
-      break;
-    case c_map_cfg_box::vsl:
-      break;
-    case c_map_cfg_box::cl:
-      bupdate_map = true;
-      break;
-    case c_map_cfg_box::mrk:
-      break;
-    }
-
-
-  pmc_box->set_params((float)map_range, visible_obj);
-}
-
-void f_ui_manager::update_route_cfg_box(c_route_cfg_box * prc_box, e_mouse_state mouse_state_new)
-{
-  if (!m_ch_wp){
-    cerr << "No waypoint channel is connected to filter " << m_name << endl;
-    return;
-  }
-  
-  m_ch_wp->lock();
-  bool bno_focused_wp = m_ch_wp->get_focus() == m_ch_wp->get_num_wps();
-  s_wp fwp;
-  
-  unsigned int rt, spd, wp;
-  prc_box->get_params(wp, spd, rt);
-  if (!bno_focused_wp)
-    fwp = m_ch_wp->get_focused_wp();
-  else{
-    fwp.v = (float)spd;	
-  }
-  
-  switch (prc_box->get_command())
-    {
-    case c_route_cfg_box::wp_prev:
-      m_ch_wp->prev_focus();
-      wp = m_ch_wp->get_focus();
-      owp.set_focus(wp);	
-      bno_focused_wp = wp == m_ch_wp->get_num_wps();
-      if (!bno_focused_wp)
-	fwp = m_ch_wp->get_focused_wp();
-      break;
-    case c_route_cfg_box::wp_next:
-      m_ch_wp->next_focus();
-      wp = m_ch_wp->get_focus();
-      owp.set_focus(wp);
-      bno_focused_wp = wp == m_ch_wp->get_num_wps();
-      if (!bno_focused_wp)
-	fwp = m_ch_wp->get_focused_wp();
-      break;
-    case c_route_cfg_box::wp_spd_up:
-      fwp.v += 1.0;
-      fwp.v = min(fwp.v, 40.0f);
-      break;
-    case c_route_cfg_box::wp_spd_down:
-      fwp.v -= 1.0;
-      fwp.v = max(fwp.v, 0.0f);
-      break;
-    case c_route_cfg_box::wp_add:
-      mouse_state_new = ms_add_wp;
-      break;
-    case c_route_cfg_box::wp_del:
-      m_ch_wp->ers();
-      fwp = m_ch_wp->get_focused_wp();
-      break;
-    case c_route_cfg_box::rt_prev:
-      rt = m_ch_wp->get_route_id();
-      if (rt == 0)
-	rt = MAX_RT_FILES - 1;
-      else
-	rt--;
-      m_ch_wp->set_route_id(rt);
-      break;
-    case c_route_cfg_box::rt_next:
-      rt = m_ch_wp->get_route_id();
-      if (rt == MAX_RT_FILES - 1)
-	rt = 0;
-      else
-	rt++;
-      m_ch_wp->set_route_id(rt);
-      break;
-    case c_route_cfg_box::rt_load:
-      m_ch_wp->set_cmd(ch_wp::cmd_load);
-      break;
-    case c_route_cfg_box::rt_save:
-      m_ch_wp->set_cmd(ch_wp::cmd_save);
-      break;
-    }
-  
-  if (mouse_state_new == mouse_state){
-    mouse_state = ms_normal;
-  }
-  else{
-    mouse_state = mouse_state_new;
-  }
-  
-  wp = m_ch_wp->get_focus();
-
-  if (!bno_focused_wp && wp < (unsigned int) m_ch_wp->get_num_wps() && wp >= 0)
-    m_ch_wp->get_focused_wp() = fwp;
-  spd = (unsigned int)fwp.v;
-  prc_box->set_params(wp, spd, rt);
-  prc_box->reset_command();
-  m_ch_wp->unlock();
-
-}
 
 void f_ui_manager::update_ui_params(c_view_mode_box * pvm_box,
-				    const double xown, const double yown, const double zown,
-				    const float vx, const float vy, const float yaw)
+				    const double xown, const double yown,
+				    const double zown,
+				    const float vx, const float vy,
+				    const float yaw)
 {
   {
     glm::mat4 tm(1.0);
