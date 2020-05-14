@@ -79,6 +79,15 @@ private:
   Control::Config config;
   AutopilotMode ap_mode;
   ControlSource ctrl_src;
+  c_log log_ctrl;
+  bool replay;
+  
+  void set_ctrl(const unsigned char * buf, const size_t len)
+  {
+    if(m_ch_ctrl_out) m_ch_ctrl_out->push(buf, len);
+    log_ctrl.write(get_time(), buf, len);
+  }
+  
   
   flatbuffers::FlatBufferBuilder ctrl_builder;
   
@@ -91,7 +100,7 @@ private:
       auto data = CreateData(ctrl_builder, get_time(),
 			     Control::Payload_Engine, payload.Union());
       ctrl_builder.Finish(data);
-      m_ch_ctrl_out->push(ctrl_builder.GetBufferPointer(), ctrl_builder.GetSize());
+      set_ctrl(ctrl_builder.GetBufferPointer(), ctrl_builder.GetSize());
     }    
   }
   
@@ -104,7 +113,7 @@ private:
       auto data = CreateData(ctrl_builder, get_time(),
 			     Control::Payload_Rudder, payload.Union());
       ctrl_builder.Finish(data);
-      m_ch_ctrl_out->push(ctrl_builder.GetBufferPointer(), ctrl_builder.GetSize());
+      set_ctrl(ctrl_builder.GetBufferPointer(), ctrl_builder.GetSize());
     }      
   }
   
@@ -117,8 +126,7 @@ private:
 			     Control::Payload_Revolution,
 			     payload.Union());
       ctrl_builder.Finish(data);
-      m_ch_ctrl_out->push(ctrl_builder.GetBufferPointer(), ctrl_builder.GetSize());
-      
+      set_ctrl(ctrl_builder.GetBufferPointer(), ctrl_builder.GetSize());      
     }
   }
   
@@ -131,7 +139,7 @@ private:
 			     Control::Payload_Speed,
 			     payload.Union());
       ctrl_builder.Finish(data);
-      m_ch_ctrl_out->push(ctrl_builder.GetBufferPointer(), ctrl_builder.GetSize());      
+      set_ctrl(ctrl_builder.GetBufferPointer(), ctrl_builder.GetSize());      
     }    
   }
 
@@ -144,7 +152,7 @@ private:
 			     Control::Payload_Course,
 			     payload.Union());
       ctrl_builder.Finish(data);
-      m_ch_ctrl_out->push(ctrl_builder.GetBufferPointer(), ctrl_builder.GetSize());
+      set_ctrl(ctrl_builder.GetBufferPointer(), ctrl_builder.GetSize());    
     }
   }
     

@@ -32,7 +32,7 @@ f_ui_manager::f_ui_manager(const char * name) :
   stb_cog_tgt(FLT_MAX),
   m_rud_f(127.), m_eng_f(127.),
   cog_tgt(0.f), sog_tgt(3.0f), rev_tgt(700),  sog_max(23),  rev_max(5600),
-  msg_builder(1024), ctrl_builder(64)
+  msg_builder(1024), replay(false), ctrl_builder(64)
 {
   m_path_storage[0] = '.';m_path_storage[1] = '\0';
  
@@ -93,6 +93,7 @@ f_ui_manager::f_ui_manager(const char * name) :
   register_fpar("ss", &m_bss, "Screen shot now.");
   register_fpar("svw", &m_bsvw, "Screen video write.");
 
+  register_fpar("replay", &replay, "Replay flag");
   // for aws1
   eng_cmd_val[eng_fl_as] = 33;
   eng_cmd_val[eng_hf_as] = 43;
@@ -241,6 +242,15 @@ bool f_ui_manager::init_map_mask()
 
 bool f_ui_manager::init_run()
 {
+  {
+    string file_prefix = get_name();
+    file_prefix += "_ctrl";
+    if(!log_ctrl.init(f_base::get_data_path(), file_prefix, replay)){
+      spdlog::error("[{}] Failed to open log file in {}.", get_name(), f_base::get_data_path());
+      return false;
+    }
+  }
+  
   if (!m_state)
     {
       cerr << "In filter " << m_name << ", ";
@@ -1463,6 +1473,17 @@ void f_ui_manager::snd_ctrl_inst(const double * Rown, const double xown,
 				 const double yown, const double zown,
 				 const float cog, const float rpm)
 {
+  if (replay){
+    long long t;
+    if(!log_ctrl.read(t, buf_ctrl_in, sz_buf_ctrl_in)){
+      spdlog::error("[{}] Failed to get control log data.", get_name());
+    }
+    
+    if(m_ch_ctrl_out) m_ch_ctrl_out->push(buf_ctrl_in, sz_buf_ctrl_in);
+    
+    return;
+  }
+  
   // process joypad inputs
   if(m_js.id != -1){
     m_js.set_btn();
