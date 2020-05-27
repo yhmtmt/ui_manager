@@ -32,7 +32,7 @@ f_ui_manager::f_ui_manager(const char * name) :
   stb_cog_tgt(FLT_MAX),
   m_rud_f(127.), m_eng_f(127.),
   cog_tgt(0.f), sog_tgt(3.0f), rev_tgt(700),  sog_max(23),  rev_max(5600),
-  msg_builder(1024), replay(false), ctrl_builder(64)
+  msg_builder(1024), log_ctrl_flag(true), replay(false), ctrl_builder(64)
 {
   m_path_storage[0] = '.';m_path_storage[1] = '\0';
  
@@ -92,7 +92,7 @@ f_ui_manager::f_ui_manager(const char * name) :
 
   register_fpar("ss", &m_bss, "Screen shot now.");
   register_fpar("svw", &m_bsvw, "Screen video write.");
-
+  register_fpar("log_ctrl", &log_ctrl_flag, "Control logging flag.");
   register_fpar("replay", &replay, "Replay flag");
   // for aws1
   eng_cmd_val[eng_fl_as] = 33;
