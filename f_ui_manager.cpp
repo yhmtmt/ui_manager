@@ -27,10 +27,13 @@ f_ui_manager::f_ui_manager(const char * name) :
   fov_cam_x(100.0f), fcam(0), height_cam(2.0f), dir_cam_hdg(0.f),
   dir_cam_hdg_drag(0.f), num_max_wps(100), num_max_ais(100),
   bupdate_map(true), pt_prev_map_update(0, 0, 0),
-  map_range(4000), map_range_base(1000),  sz_mark(10.0f), mouse_state(ms_normal),
+  map_range(4000), map_range_base(1000), sz_mark(10.0f), mouse_state(ms_normal),
   bmap_center_free(false), btn_pushed(ebtn_nul), btn_released(ebtn_nul),
   stb_cog_tgt(FLT_MAX),
   m_rud_f(127.), m_eng_f(127.),
+  engine_max(255), engine_min(0), engine_nutral(127),
+  engine_backward(0), engine_forward(0),
+  rudder_max(255), rudder_mid(127), rudder_min(0), 
   cog_tgt(0.f), sog_tgt(3.0f), rev_tgt(700),  sog_max(23),  rev_max(5600),
   msg_builder(1024), log_ctrl_flag(true), replay(false), ctrl_builder(64)
 {
@@ -1499,9 +1502,9 @@ void f_ui_manager::snd_ctrl_inst(const double * Rown, const double xown,
   case ControlSource_UI:
     handle_ctrl_crz();
     cog_tgt = cog;
-    if(eng_cmd_val[eng_ds_ah] <= engine.value()) // ahead
+    if(eng_cmd_val[eng_ds_ah] <= eng_ctrl) // ahead
       rev_tgt = rpm;
-    else if (eng_cmd_val[eng_ds_as] >=  engine.value()) //astern
+    else if (eng_cmd_val[eng_ds_as] >=  eng_ctrl) //astern
       rev_tgt = -rpm;
     break;
   case ControlSource_AP:
@@ -1518,9 +1521,9 @@ void f_ui_manager::snd_ctrl_inst(const double * Rown, const double xown,
 	sog_tgt = 0.0;
 	set_ctrl_speed();
       }      
-      if(eng_cmd_val[eng_ds_ah] <= engine.value()) // ahead
+      if(eng_cmd_val[eng_ds_ah] <= eng_ctrl) // ahead
 	rev_tgt = rpm;
-      else if (eng_cmd_val[eng_ds_as] >=  engine.value()) //astern
+      else if (eng_cmd_val[eng_ds_as] >=  eng_ctrl) //astern
 	rev_tgt = -rpm;
       break;
     case AutopilotMode_STAY:{
@@ -1550,8 +1553,8 @@ void f_ui_manager::snd_ctrl_inst(const double * Rown, const double xown,
       break;
     }
     // UI control values follow the ap's ones.
-    m_eng_f = engine.value(); 
-    m_rud_f = rudder.value();
+    m_eng_f = eng_ctrl; 
+    m_rud_f = rud_ctrl;
     break;
   default:
     break;
@@ -1568,23 +1571,32 @@ void f_ui_manager::rcv_ctrl_stat()
       auto data = Control::GetData(buf_ctrl_in);
       switch(data->payload_type()){
       case Control::Payload_Engine:
-	engine = *data->payload_as_Engine();
+	eng_ctrl = data->payload_as_Engine()->value();
 	break;
       case Control::Payload_Revolution:
-	revolution = *data->payload_as_Revolution();
+	rev_ap = data->payload_as_Revolution()->value();
 	break;
       case Control::Payload_Speed:
-	speed = *data->payload_as_Speed();
+	spd_ap = data->payload_as_Speed()->value();
 	break;
       case Control::Payload_Rudder:
-	rudder = *data->payload_as_Rudder();
+	rud_ctrl = data->payload_as_Rudder()->value();
 	break;
       case Control::Payload_Course:
-	course = *data->payload_as_Course();
+	cog_ap = data->payload_as_Course()->value();
 	break;
-      case Control::Payload_Config:
-	config = *data->payload_as_Config();
+      case Control::Payload_Config:{
+	auto config = data->payload_as_Config();
+	engine_max = config->engine_max();
+	engine_min = config->engine_min();
+	engine_forward = config->engine_forward();
+	engine_backward = config->engine_backward();
+	engine_nutral = config->engine_nutral();
+	rudder_max = config->rudder_max();
+	rudder_min = config->rudder_min();
+	rudder_mid = config->rudder_mid();	
 	if(m_ch_ctrl_out) m_ch_ctrl_out->push(buf_ctrl_in, sz_buf_ctrl_in);
+      }
 	break;
       default:
 	break;
@@ -2093,9 +2105,9 @@ void f_ui_manager::update_indicator(const float cog, const float sog,
   float yawf = (float)(yaw * (PI / 180.f));
   const char *str_steng1 = ((steng1 >= 0 && steng1 <= NMEA2000::EngineStatus1_MAX) ? strStatEng1[steng1] : NULL);
   const char *str_steng2 = ((steng2 >= 0 && steng2 <= NMEA2000::EngineStatus2_MAX) ? strStatEng2[steng2] : NULL);
-  ind.set_param( m_time_str, engine.value(), rpm, rev_tgt, trim, poil,
+  ind.set_param( m_time_str, eng_ctrl, rpm, rev_tgt, trim, poil,
 		 toil, temp, valt, frate, teng, pclnt, pfl, ld, tq,
-		 str_steng1, str_steng2, rudder.value(),
+		 str_steng1, str_steng2, rud_ctrl,
 		 cogf, (float)(cog_tgt * (PI/180.f)), sog, sog_tgt, yawf,
 		 (float)(pitch* (PI / 180.f)), (float)(-roll* (PI / 180.f)),
 		 depth);
