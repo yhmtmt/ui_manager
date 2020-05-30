@@ -35,7 +35,7 @@ f_ui_manager::f_ui_manager(const char * name) :
   engine_backward(0), engine_forward(0),
   rudder_max(255), rudder_mid(127), rudder_min(0), 
   cog_tgt(0.f), sog_tgt(3.0f), rev_tgt(700),  sog_max(23),  rev_max(5600),
-  msg_builder(1024), log_ctrl_flag(true), replay(false), ctrl_builder(64)
+  msg_builder(1024), log_ctrl_flag(true), replay(false), ctrl_builder(1024)
 {
   m_path_storage[0] = '.';m_path_storage[1] = '\0';
  
