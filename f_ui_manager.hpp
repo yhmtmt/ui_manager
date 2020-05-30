@@ -68,24 +68,31 @@ private:
   ch_ctrl_data * m_ch_ctrl_out;         // control data out (->autopilot->control)
   ch_ctrl_data * m_ch_ctrl_in;          // control data in (<-autopilot<-control)
 
-  size_t sz_buf_ctrl_in;
-  unsigned char buf_ctrl_in[64];  
+  unsigned int sz_buf_ctrl_in;
+  unsigned char buf_ctrl_in[256];  
+
+  unsigned char eng_ctrl, rud_ctrl;
+  float spd_ap, rev_ap, cog_ap;
+  unsigned char engine_max, engine_forward, engine_nutral, engine_backward, engine_min;
+  unsigned char rudder_max, rudder_mid, rudder_min;
   
-  Control::Engine engine;
-  Control::Revolution revolution;
-  Control::Speed speed;
-  Control::Rudder rudder;
-  Control::Course course;
-  Control::Config config;
+  //  Control::Engine engine;
+  //Control::Revolution revolution;
+  //Control::Speed speed;
+  //Control::Rudder rudder;
+  //Control::Course course;
+  //  Control::Config config;
   AutopilotMode ap_mode;
   ControlSource ctrl_src;
   c_log log_ctrl;
+  bool log_ctrl_flag;
   bool replay;
   
   void set_ctrl(const unsigned char * buf, const size_t len)
   {
     if(m_ch_ctrl_out) m_ch_ctrl_out->push(buf, len);
-    log_ctrl.write(get_time(), buf, len);
+    if(log_ctrl_flag)
+      log_ctrl.write(get_time(), buf, len);
   }
   
   
@@ -94,9 +101,9 @@ private:
   void set_ctrl_engine()
   {
     unsigned char new_eng = (unsigned char)m_eng_f;    
-    if(engine.value() != new_eng){
+    if(eng_ctrl != new_eng){
       ctrl_builder.Clear();
-      auto payload = ctrl_builder.CreateStruct(Control::Engine((unsigned char)m_eng_f));
+      auto payload = Control::CreateEngine(ctrl_builder, (unsigned char)m_eng_f);
       auto data = CreateData(ctrl_builder, get_time(),
 			     Control::Payload_Engine, payload.Union());
       ctrl_builder.Finish(data);
@@ -107,9 +114,9 @@ private:
   void set_ctrl_rudder()
   {    
     unsigned char new_rud = (unsigned char)m_rud_f;   
-    if(rudder.value() != new_rud){
+    if(rud_ctrl != new_rud){
       ctrl_builder.Clear();
-      auto payload = ctrl_builder.CreateStruct(Control::Rudder((unsigned char)m_rud_f));
+      auto payload = Control::CreateRudder(ctrl_builder, (unsigned char)m_rud_f);
       auto data = CreateData(ctrl_builder, get_time(),
 			     Control::Payload_Rudder, payload.Union());
       ctrl_builder.Finish(data);
@@ -119,9 +126,9 @@ private:
   
   void set_ctrl_revolution()
   {
-    if(revolution.value() != rev_tgt){
+    if(rev_ap != rev_tgt){
       ctrl_builder.Clear();
-      auto payload = ctrl_builder.CreateStruct(Control::Revolution(rev_tgt));
+      auto payload = Control::CreateRevolution(ctrl_builder, rev_tgt);
       auto data = CreateData(ctrl_builder, get_time(),
 			     Control::Payload_Revolution,
 			     payload.Union());
@@ -132,9 +139,9 @@ private:
   
   void set_ctrl_speed()
   {
-    if(speed.value() != sog_tgt){
+    if(spd_ap != sog_tgt){
       ctrl_builder.Clear();
-      auto payload = ctrl_builder.CreateStruct(Control::Speed(sog_tgt));
+      auto payload = Control::CreateSpeed(ctrl_builder, sog_tgt);
       auto data = CreateData(ctrl_builder, get_time(),
 			     Control::Payload_Speed,
 			     payload.Union());
@@ -145,9 +152,9 @@ private:
 
   void set_ctrl_course()
   {
-    if(course.value() != cog_tgt){
+    if(cog_ap != cog_tgt){
       ctrl_builder.Clear();
-      auto payload = ctrl_builder.CreateStruct(Control::Course(cog_tgt));
+      auto payload = Control::CreateCourse(ctrl_builder, cog_tgt);
       auto data = CreateData(ctrl_builder, get_time(),
 			     Control::Payload_Course,
 			     payload.Union());
