@@ -1968,6 +1968,7 @@ void f_ui_manager::handle_mouse_lbtn_release(c_view_mode_box * pvm_box)
     handle_mouse_drag(pvm_box, obj_tmp);
     dir_cam_hdg += dir_cam_hdg_drag;
     dir_cam_hdg_drag = 0.f;
+    mouse_state = ms_normal;
     break;
   case ms_normal:
     break;
