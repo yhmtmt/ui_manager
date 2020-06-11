@@ -651,6 +651,7 @@ void f_ui_manager::update_ais_objs()
   m_ch_ais_obj->lock();
   aisobjects.resize(m_ch_ais_obj->get_num_objs());
   int iobj = 0;
+  int iobj_visible = 0;
   if (obj_mouse_on.type == ot_ais){
     m_ch_ais_obj->set_track(obj_mouse_on.handle);
     obj_mouse_on.type = ot_nul;
@@ -669,18 +670,19 @@ void f_ui_manager::update_ais_objs()
       }else{ 
 	oais.enable(iobj);
 	oais.update_ais_obj(iobj, obj);
+	double lat, lon, alt;
+	float cog, sog;
+	
+	obj.get_pos_blh(lat, lon, alt);
+	obj.get_vel_blh(cog, sog);
+	aisobjects[iobj_visible] = UIManagerMsg::AISObject(obj.get_mmsi(),
+							   lat, lon, cog, sog);
+	iobj_visible++;
       }
-    }
-    {
-      double lat, lon, alt;
-      float cog, sog;
-      
-      obj.get_pos_blh(lat, lon, alt);
-      obj.get_vel_blh(cog, sog);
-      aisobjects[iobj] = UIManagerMsg::AISObject(obj.get_mmsi(), lat, lon, cog, sog);
     }
     iobj++;
   }
+  aisobjects.resize(iobj_visible);
   m_ch_ais_obj->unlock();  
   
   oais.set_fpv_param(pvm, glm::vec2(m_sz_win.width, m_sz_win.height));
