@@ -1479,12 +1479,13 @@ void f_ui_manager::snd_ctrl_inst(const double * Rown, const double xown,
 				 const float cog, const float rpm)
 {
   if (replay){
-    long long t;
+    long long t = get_time();
     if(!log_ctrl.read(t, buf_ctrl_in, sz_buf_ctrl_in)){
       spdlog::error("[{}] Failed to get control log data.", get_name());
     }
-    
-    if(m_ch_ctrl_out) m_ch_ctrl_out->push(buf_ctrl_in, sz_buf_ctrl_in);
+
+    if(m_ch_ctrl_out && sz_buf_ctrl_in > 0)
+      m_ch_ctrl_out->push(buf_ctrl_in, sz_buf_ctrl_in);
     
     return;
   }
