@@ -13,6 +13,7 @@
 // You should have received a copy of the GNU General Public License
 // along with aws1_glib.cpp.  If not, see <http://www.gnu.org/licenses/>.
 #include <iostream>
+#include <fstream>
 #include <vector>
 using namespace std;
 #include "aws_glib.hpp"
